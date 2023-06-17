@@ -58,11 +58,31 @@ public:
   Team GetTeam() const {return m_Team;}
   PieceType GetPieceType() const {return m_Type;}
 public:
+  std::vector<Vec2>& GetPseudoLegalMoves(){
+    return m_PseudoLegalMoves;
+  }
 
+  std::vector<Vec2>& GetLegalMoves(){
+    return m_LegalMoves;
+  }
+
+  std::vector<Vec2>& GetAttackMoves(){
+    return m_AttackMoves;
+  }
+
+  std::vector<Vec2>& GetDefendingMoves(){
+    return m_DefendingMoves;
+  }
+  
 private:
   PieceType m_Type = PieceType::UNKNOWN;
   Team m_Team = Team::UNKNOWN;
   Vec2 m_Position; // position on map
   Texture m_Texture;
+private:
+  std::vector<Vec2> m_PseudoLegalMoves;
+  std::vector<Vec2> m_LegalMoves;
+  std::vector<Vec2> m_AttackMoves; // piece attacking piece from opposite team
+  std::vector<Vec2> m_DefendingMoves; // piece attacking piece from its own team
 };
 #endif //! __PIECE_HPP__
