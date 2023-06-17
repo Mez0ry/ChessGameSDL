@@ -89,12 +89,8 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
   }//!for loop
 
   m_Board.LoadPositionFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",m_Players);
-  for(auto& player : m_Players){
-    for(auto& piece : player.GetPieces()){
-      m_Board.CalculatePseudoLegalMoves(m_Players,piece);
-      m_Board.CalculateLegalMoves(m_Players,piece);
-    }
-  }
+  
+  m_Board.CalculateMoves(m_Players);
 }
 
 Playing::~Playing(){
