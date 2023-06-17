@@ -14,9 +14,9 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
   
   Vec2 negative_pos = {-2,-2};
 
-  for (int row = 0; row < 2; row++) {
+  for (int col_index = 0; col_index < 2; col_index++) {
     Piece::Team team;
-    team = ((row & 1) == 0) ? Piece::Team::WHITE : Piece::Team::BLACK;
+    team = ((col_index & 1) == 0) ? Piece::Team::WHITE : Piece::Team::BLACK;
     std::string prefix = (team == Piece::Team::WHITE) ? "w_" : "b_";
 
     std::string texture_path = "resources/Pieces/" + prefix + "pawn.png";
@@ -32,7 +32,7 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
     Texture rook_texture(m_Renderer,texture_path);
     
     for (int k = 0; k < 8; k++) {
-      m_Players[row].AddPiece(piece_builder.ShareSDLTexture(pawn_texture)
+      m_Players[col_index].AddPiece(piece_builder.ShareSDLTexture(pawn_texture)
                                           .SetPieceType(Piece::PieceType::PAWN)
                                           .SetTeam(team)
                                           .SetSourceTexture({0,0},{128,128})
@@ -42,7 +42,7 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
     }
 
     for (int k = 0; k < 2; k++) {
-      m_Players[row].AddPiece(piece_builder.ShareSDLTexture(bishop_texture)
+      m_Players[col_index].AddPiece(piece_builder.ShareSDLTexture(bishop_texture)
                                           .SetPieceType(Piece::PieceType::BISHOP)
                                           .SetTeam(team)
                                           .SetSourceTexture({0,0},{128,128})
@@ -52,7 +52,7 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
     }
 
     for (int k = 0; k < 2; k++) {
-      m_Players[row].AddPiece(piece_builder.ShareSDLTexture(knight_texture)
+      m_Players[col_index].AddPiece(piece_builder.ShareSDLTexture(knight_texture)
                                           .SetPieceType(Piece::PieceType::KNIGHT)
                                           .SetTeam(team)
                                           .SetSourceTexture({0,0},{128,128})
@@ -62,7 +62,7 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
     }
 
     for (int k = 0; k < 2; k++) {
-      m_Players[row].AddPiece(piece_builder.ShareSDLTexture(rook_texture)
+      m_Players[col_index].AddPiece(piece_builder.ShareSDLTexture(rook_texture)
                                           .SetPieceType(Piece::PieceType::ROOK)
                                           .SetTeam(team)
                                           .SetSourceTexture({0,0},{128,128})
@@ -70,7 +70,7 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
                                           .SetSize(one_square_size)
                                           .build());
     }
-    m_Players[row].AddPiece(piece_builder.LoadTexture(m_Renderer,std::string("resources/Pieces/" + prefix + "queen.png"))
+    m_Players[col_index].AddPiece(piece_builder.LoadTexture(m_Renderer,std::string("resources/Pieces/" + prefix + "queen.png"))
                                         .SetPieceType(Piece::PieceType::QUEEN)
                                         .SetTeam(team)
                                         .SetSourceTexture({0,0},{128,128})
@@ -79,7 +79,7 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
                                         .build());
 
    
-    m_Players[row].AddPiece(piece_builder.LoadTexture(m_Renderer,std::string("resources/Pieces/" + prefix + "king.png"))
+    m_Players[col_index].AddPiece(piece_builder.LoadTexture(m_Renderer,std::string("resources/Pieces/" + prefix + "king.png"))
                                         .SetPieceType(Piece::PieceType::KING)
                                         .SetTeam(team)
                                         .SetSourceTexture({0,0},{128,128})
