@@ -111,7 +111,34 @@ void Playing::OnDestroy(){
 void Playing::HandleInput(const Base::Ref<EventHandler> event_handler){
   auto& keyboard_input = event_handler->GetKeyboardInput();
   auto& mouse_input = event_handler->GetMouseInput();
-  
+  m_MouseInput = mouse_input;
+  auto cursor_pos = mouse_input.GetMousePosition();
+
+  if(mouse_input.IsPressed(SDL_BUTTON_LEFT)){
+    for(auto& player : m_Players){
+      for(auto& piece : player.GetPieces()){
+        if(piece->GetTexture().PointIsOnTexture(cursor_pos)){
+          piece->SetDragging(true);
+        }
+      }
+    }
+  }else if(mouse_input.IsReleased(SDL_BUTTON_LEFT)){
+    for(auto& player : m_Players){
+      for(auto& piece : player.GetPieces()){
+        if(piece->IsDragging()){
+          piece->SetDragging(false);
+
+          Vec2 new_pos;
+          new_pos.x = (cursor_pos.x - m_Board.GetTopLeft().x) / m_Board.GetOneSquareSize().GetWidth();
+          new_pos.y = (cursor_pos.y - m_Board.GetTopLeft().y) / m_Board.GetOneSquareSize().GetHeight();
+
+          if(m_Board.IsOnBoard(new_pos)){
+            
+          }
+        }
+      }
+    }
+  }
 }
 
 
@@ -124,7 +151,11 @@ void Playing::Render(){
 
   for(auto& player : m_Players){
     for(auto& piece : player.GetPieces()){
-      m_Board.RenderEntity(m_Renderer,piece);
+      if(piece->IsDragging()){
+        DragEntity(m_MouseInput.GetMousePosition(),m_Renderer).Execute(piece);
+      }else{
+        m_Board.RenderEntity(m_Renderer,piece);
+      }
     }
   }
   

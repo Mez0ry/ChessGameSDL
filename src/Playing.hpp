@@ -9,6 +9,7 @@
 #include "Board.hpp"
 #include "Player.hpp"
 #include "PieceBuilder.hpp"
+#include "DragEntity.hpp"
 
 class SceneManager;
 
@@ -24,8 +25,8 @@ public:
   void HandleInput(const Base::Ref<EventHandler> event_handler) override;
   void Update(float dt) override;
   void Render() override;
-
 private:
+  MouseInput m_MouseInput;
   SceneManager* m_SceneManager;
   Board m_Board;
   std::vector<Player> m_Players;
