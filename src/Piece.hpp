@@ -73,6 +73,26 @@ public:
   std::vector<Vec2>& GetDefendingMoves(){
     return m_DefendingMoves;
   }
+
+  bool IsPseudoLegalMove(const Vec2& move) const{
+    auto it = std::find_if(m_PseudoLegalMoves.begin(),m_PseudoLegalMoves.end(),[&](const Vec2& pos){return (pos == move);});
+    return (it != m_PseudoLegalMoves.end()) ? true : false;
+  }
+  
+  bool IsLegalMove(const Vec2& move) const{
+    auto it = std::find_if(m_LegalMoves.begin(),m_LegalMoves.end(),[&](const Vec2& pos){return (pos == move);});
+    return (it != m_LegalMoves.end()) ? true : false;
+  }
+
+  bool IsAttackedSquare(const Vec2& square) const{
+    auto it = std::find_if(m_AttackMoves.begin(),m_AttackMoves.end(),[&](const Vec2& pos){return (pos == square);});
+    return (it != m_AttackMoves.end()) ? true : false;
+  }
+
+  bool IsDefendedSquare(const Vec2& square) const{
+    auto it = std::find_if(m_DefendingMoves.begin(),m_DefendingMoves.end(),[&](const Vec2& pos){return (pos == square);});
+    return (it != m_DefendingMoves.end()) ? true : false;
+  }
   
 private:
   PieceType m_Type = PieceType::UNKNOWN;
