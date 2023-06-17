@@ -33,6 +33,8 @@ public:
   void CalculateLegalMoves(std::vector<Player> &players, Base::Ref<Piece>& current_piece);
   void CalculateLegalBishopMoves(std::vector<Player>& players, Base::Ref<Piece>& current_piece);
   
+  void CalculateMoves(std::vector<Player>& players);
+
   bool SquareIsOccupied(std::vector<Player> &players,const Vec2& square) const{
     std::function<bool(Base::Ref<Piece>)> requirement = [&](Base::Ref<Piece> piece) ->bool{
       return (piece->GetPosition() == square);

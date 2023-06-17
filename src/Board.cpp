@@ -487,3 +487,13 @@ void Board::CalculateLegalBishopMoves(std::vector<Player> &players, Base::Ref<Pi
         }
     }
 }
+
+
+void Board::CalculateMoves(std::vector<Player>& players){
+  for(auto& player : players){
+    for(auto& piece : player.GetPieces()){
+      CalculatePseudoLegalMoves(players,piece);
+      CalculateLegalMoves(players,piece);
+    }
+  }
+}
