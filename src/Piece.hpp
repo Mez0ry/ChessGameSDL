@@ -7,7 +7,7 @@
 
 class PieceBuilder;
 
-class Piece : public Entity {
+class Piece : virtual public Entity {
 public:
   enum class PieceType {
     PAWN = 'p',
@@ -45,7 +45,7 @@ public:
 
   Piece& operator=(Piece&&) = default;
   Piece& operator=(const Piece&) = default;
-  
+
   Texture &GetTexture() override { return m_Texture; }
 
   void SetPosition(const Vec2 &pos) override { m_Position = pos; }
@@ -57,11 +57,12 @@ public:
   
   Team GetTeam() const {return m_Team;}
   PieceType GetPieceType() const {return m_Type;}
+public:
 
 private:
   PieceType m_Type = PieceType::UNKNOWN;
   Team m_Team = Team::UNKNOWN;
-  Vec2 m_Position; // on map
+  Vec2 m_Position; // position on map
   Texture m_Texture;
 };
 #endif //! __PIECE_HPP__
