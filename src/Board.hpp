@@ -4,6 +4,7 @@
 #include "Player.hpp"
 #include "Texture.hpp"
 #include <array>
+#include <vector>
 
 #define BOARD_HEIGHT 8
 #define BOARD_WIDTH 8
@@ -19,7 +20,49 @@ public:
   static void RenderEntity(const Base::Ref<Renderer> renderer,const Base::Ref<Entity> entity);
 
   void LoadPositionFromFen(const char *fen, std::vector<Player> &players);
+  
+  /**
+   * @brief makes move if move is legal
+  */
+  void MakeMove(Base::Ref<Piece> current_piece,const Vec2& move_to);
+  
+  void CalculatePseudoLegalMoves(std::vector<Player> &players, Base::Ref<Piece>& current_piece);
+  void CalculatePseudoBishopMoves(std::vector<Player> &players, Base::Ref<Piece>& current_piece);
+  void CalculatePseudoRookMoves(std::vector<Player>& players, Base::Ref<Piece>& current_piece);
 
+  void CalculateLegalMoves(std::vector<Player> &players, Base::Ref<Piece>& current_piece);
+  void CalculateLegalBishopMoves(std::vector<Player>& players, Base::Ref<Piece>& current_piece);
+  
+  bool SquareIsOccupied(std::vector<Player> &players,const Vec2& square) const{
+    std::function<bool(Base::Ref<Piece>)> requirement = [&](Base::Ref<Piece> piece) ->bool{
+      return (piece->GetPosition() == square);
+    };
+
+    for(auto& player : players){
+      auto pieces = player.FindPiecesIf(requirement);
+      if(!pieces.empty()){
+        return true;
+      }
+    }
+
+    return false;
+  }
+  
+  Base::Ref<Piece> GetPieceAt(std::vector<Player>& players,const Vec2& square){
+    std::function<bool(Base::Ref<Piece>)> requirement = [&](Base::Ref<Piece> piece) ->bool{
+      return (piece->GetPosition() == square);
+    };
+
+    for(auto& player : players){
+      auto pieces = player.FindPiecesIf(requirement);
+      if(!pieces.empty()){
+        return pieces.front();
+      }
+    }
+
+    return nullptr;
+  }
+  
 public:
   bool IsOnBoard(const Vec2 &pos) {
     return (pos.y < m_BoardSize.y && pos.x < m_BoardSize.x && pos.y > -1 && pos.x > -1);
