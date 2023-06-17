@@ -30,7 +30,7 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
     
     texture_path = "resources/Pieces/" + prefix + "rook.png";
     Texture rook_texture(m_Renderer,texture_path);
-
+    
     for (int k = 0; k < 8; k++) {
       m_Players[row].AddPiece(piece_builder.ShareSDLTexture(pawn_texture)
                                           .SetPieceType(Piece::PieceType::PAWN)
@@ -89,6 +89,12 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
   }//!for loop
 
   m_Board.LoadPositionFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",m_Players);
+  for(auto& player : m_Players){
+    for(auto& piece : player.GetPieces()){
+      m_Board.CalculatePseudoLegalMoves(m_Players,piece);
+      m_Board.CalculateLegalMoves(m_Players,piece);
+    }
+  }
 }
 
 Playing::~Playing(){
@@ -133,7 +139,7 @@ void Playing::HandleInput(const Base::Ref<EventHandler> event_handler){
           new_pos.y = (cursor_pos.y - m_Board.GetTopLeft().y) / m_Board.GetOneSquareSize().GetHeight();
 
           if(m_Board.IsOnBoard(new_pos)){
-            
+            m_Board.MakeMove(piece,new_pos);
           }
         }
       }
