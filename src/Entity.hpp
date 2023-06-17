@@ -17,7 +17,10 @@ public:
 
   virtual void SetSize(const ObjectSize &size) = 0;
   virtual const ObjectSize GetSize() const = 0;
-  
-private:
+
+  void SetDragging(bool status){m_IsDragging = status;}
+  bool IsDragging() const {return m_IsDragging;}
+protected:
+  bool m_IsDragging;
 };
 #endif //! __ENTITY_HPP__
