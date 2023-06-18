@@ -455,7 +455,7 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
                 curr_special_moves.push_back(pseudo_legal);
                 continue;
             }
-            
+
             if (direction.x == -1 && direction.y == 1 || direction.x == -1 && direction.y == -1)
             { // dir top-left diagonal
                 auto piece = GetPieceAt(players, pseudo_legal);
@@ -667,4 +667,32 @@ void Board::CalculateMoves(std::vector<Player> &players)
             CalculateLegalMoves(players, piece);
         }
     }
+}
+
+bool Board::KingInCheck(std::vector<Player> &players,Piece::Team team) const{
+    Base::Ref<Piece> king = nullptr;
+    
+    for(auto& player : players){
+        if(player.GetPieces().front()->GetTeam() == team){
+            king = player.FindPieceIf([&](Base::Ref<Piece> piece){return (piece->GetPieceType() == Piece::PieceType::KING);});
+            break;
+        }else{
+            continue;
+        }
+    }
+
+    if(king == nullptr) return false;
+
+    /*opponent*/
+    for(auto& player : players){
+        if(player.GetPieces().front()->GetTeam() == team) continue;
+
+        for(auto& piece : player.GetPieces()){
+            if(piece->IsAttackedSquare(king->GetPosition())){
+                return true;
+            }
+        }
+    }
+    
+    return false;
 }
