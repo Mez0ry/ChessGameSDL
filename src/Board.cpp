@@ -693,6 +693,19 @@ bool Board::KingInCheck(std::vector<Player> &players,Piece::Team team) const{
             }
         }
     }
-    
+
     return false;
+}
+
+bool Board::MoveLeadToCheck(std::vector<Player>& players,Base::Ref<Piece> piece,const Vec2& move_to){
+    MoveInfo move_info;
+    move_info.moveFrom = piece->GetPosition();
+    move_info.moveTo = move_to;
+    move_info.pieceToMove = piece;
+
+    MakeMove(move_info);
+    bool after = KingInCheck(players,piece->GetTeam());
+    UnmakeMove();
+    
+    return after;
 }

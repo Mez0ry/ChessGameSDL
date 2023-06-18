@@ -70,6 +70,8 @@ public:
   }
   
   bool KingInCheck(std::vector<Player> &players,Piece::Team team) const;
+  bool MoveLeadToCheck(std::vector<Player>& players,Base::Ref<Piece> piece,const Vec2& move_to);
+
 public:
   bool IsOnBoard(const Vec2 &pos) {
     return (pos.y < m_BoardSize.y && pos.x < m_BoardSize.x && pos.y > -1 && pos.x > -1);
