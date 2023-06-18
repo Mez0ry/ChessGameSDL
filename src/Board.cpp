@@ -150,10 +150,20 @@ void Board::LoadPositionFromFen(const char *fen, std::vector<Player> &players)
     }
 }
 
-void Board::MakeMove(Base::Ref<Piece> current_piece,const Vec2& move_to){
-    if(current_piece->IsLegalMove(move_to)){
-        current_piece->SetPosition(move_to);
+void Board::MakeMove(const MoveInfo& move_info){
+    auto& current_piece = move_info.pieceToMove;
+    if(current_piece->IsLegalMove(move_info.moveTo)){
+        current_piece->SetPosition(move_info.moveTo);
+        m_MovesVec.push_back(move_info);
     }
+}
+
+void Board::UnmakeMove(){
+    if(m_MovesVec.empty()) return;
+
+    auto piece = m_MovesVec.back().pieceToMove;
+    piece->SetPosition(m_MovesVec.back().moveFrom);
+    m_MovesVec.pop_back();
 }
 
 #pragma GCC diagnostic push // Also works for clang compiler
@@ -487,7 +497,6 @@ void Board::CalculateLegalBishopMoves(std::vector<Player> &players, Base::Ref<Pi
         }
     }
 }
-
 
 void Board::CalculateMoves(std::vector<Player>& players){
   for(auto& player : players){

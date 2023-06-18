@@ -5,11 +5,23 @@
 #include "Texture.hpp"
 #include <array>
 #include <vector>
+#include "Vector.hpp"
 
 #define BOARD_HEIGHT 8
 #define BOARD_WIDTH 8
 
 class Board {
+public:
+  struct MoveInfo{
+    Base::Ref<Piece> pieceToMove;
+    Vec2 moveFrom;
+    Vec2 moveTo;
+    bool shortCastle;
+    bool longCastle;
+    bool enPassant;
+    bool isPromotion;
+    Piece::PieceType promotionTo;
+  };
 public:
   Board(const Base::Ref<Renderer> renderer);
   ~Board();
@@ -24,8 +36,10 @@ public:
   /**
    * @brief makes move if move is legal
   */
-  void MakeMove(Base::Ref<Piece> current_piece,const Vec2& move_to);
+  void MakeMove(const MoveInfo& move_info);
   
+  void UnmakeMove();
+
   void CalculatePseudoLegalMoves(std::vector<Player> &players, Base::Ref<Piece>& current_piece);
   void CalculatePseudoBishopMoves(std::vector<Player> &players, Base::Ref<Piece>& current_piece);
   void CalculatePseudoRookMoves(std::vector<Player>& players, Base::Ref<Piece>& current_piece);
@@ -88,5 +102,6 @@ private:
   Base::Ref<Renderer> m_Renderer;
   ObjectSize m_OneSquareSize = ObjectSize(128, 128);
   static Vec2 m_BoardTopLeft;
+  std::vector<MoveInfo> m_MovesVec;
 };
 #endif //! __BOARD_HPP__
