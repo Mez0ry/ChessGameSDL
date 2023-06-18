@@ -15,6 +15,8 @@ public:
 
   void CopyPieces(std::vector<Base::Ref<Piece>>& pieces_out) const;
 
+  Base::Ref<Piece> FindPieceIf(const std::function<bool(Base::Ref<Piece>)>& function);
+  
   std::vector<Base::Ref<Piece>> FindPiecesIf(const std::function<bool(Base::Ref<Piece>)>& function);
 private:
   std::vector<Base::Ref<Piece>> m_Pieces;

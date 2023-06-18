@@ -18,6 +18,16 @@ void Player::CopyPieces(std::vector<Base::Ref<Piece>> &pieces_out) const {
     }
 }
 
+Base::Ref<Piece> Player::FindPieceIf(const std::function<bool(Base::Ref<Piece>)>& function){
+    for(auto piece : m_Pieces){
+        if(function(piece)){
+            return piece;
+        }
+    }
+    
+    return nullptr;
+}
+
 std::vector<Base::Ref<Piece>> Player::FindPiecesIf(const std::function<bool(Base::Ref<Piece>)>& function){
     std::vector<Base::Ref<Piece>> pieces;
     for(auto piece : m_Pieces){
