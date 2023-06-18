@@ -74,26 +74,40 @@ public:
     return m_DefendingMoves;
   }
 
+  std::vector<Vec2>& GetSpecialMoves(){
+    return m_SpecialMoves;
+  }
+
   bool IsPseudoLegalMove(const Vec2& move) const{
+    if(m_PseudoLegalMoves.empty()) return false;
     auto it = std::find_if(m_PseudoLegalMoves.begin(),m_PseudoLegalMoves.end(),[&](const Vec2& pos){return (pos == move);});
     return (it != m_PseudoLegalMoves.end()) ? true : false;
   }
   
   bool IsLegalMove(const Vec2& move) const{
+    if(m_LegalMoves.empty()) return false;
     auto it = std::find_if(m_LegalMoves.begin(),m_LegalMoves.end(),[&](const Vec2& pos){return (pos == move);});
     return (it != m_LegalMoves.end()) ? true : false;
   }
 
   bool IsAttackedSquare(const Vec2& square) const{
+    if(m_AttackMoves.empty()) return false;
     auto it = std::find_if(m_AttackMoves.begin(),m_AttackMoves.end(),[&](const Vec2& pos){return (pos == square);});
     return (it != m_AttackMoves.end()) ? true : false;
   }
 
   bool IsDefendedSquare(const Vec2& square) const{
+    if(m_DefendingMoves.empty()) return false;
     auto it = std::find_if(m_DefendingMoves.begin(),m_DefendingMoves.end(),[&](const Vec2& pos){return (pos == square);});
     return (it != m_DefendingMoves.end()) ? true : false;
   }
   
+  bool IsSpecialMove(const Vec2& square) const{
+    if(m_SpecialMoves.empty()) return false;
+    auto it = std::find_if(m_SpecialMoves.begin(),m_SpecialMoves.end(),[&](const Vec2& pos){return (pos == square);});
+    return (it != m_SpecialMoves.end()) ? true : false;
+  }
+
 private:
   PieceType m_Type = PieceType::UNKNOWN;
   Team m_Team = Team::UNKNOWN;
@@ -104,5 +118,6 @@ private:
   std::vector<Vec2> m_LegalMoves;
   std::vector<Vec2> m_AttackMoves; // piece attacking piece from opposite team
   std::vector<Vec2> m_DefendingMoves; // piece attacking piece from its own team
+  std::vector<Vec2> m_SpecialMoves;
 };
 #endif //! __PIECE_HPP__
