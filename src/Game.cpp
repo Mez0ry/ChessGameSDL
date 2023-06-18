@@ -1,7 +1,7 @@
 #include "Game.hpp"
 
 Game::Game() : m_bIsRunning(true) {
-  ServiceLocator::RegisterService<Window>("Tic-Tac-Toe",0,0,800,700, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+  ServiceLocator::RegisterService<Window>("ChessGameStellar",0,0,800,700, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
   ServiceLocator::RegisterService<Renderer>(ServiceLocator::GetService<Window>(),-1,SDL_RENDERER_ACCELERATED);
   ServiceLocator::RegisterService<EventHandler>();
 
