@@ -704,8 +704,12 @@ bool Board::MoveLeadToCheck(std::vector<Player>& players,Base::Ref<Piece> piece,
     move_info.pieceToMove = piece;
 
     MakeMove(move_info);
-    bool after = KingInCheck(players,piece->GetTeam());
+    CalculateMoves(players);
+
+    bool in_check = KingInCheck(players,piece->GetTeam());
+
     UnmakeMove();
+    CalculateMoves(players);
     
-    return after;
+    return in_check;
 }
