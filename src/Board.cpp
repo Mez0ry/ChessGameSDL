@@ -150,16 +150,20 @@ void Board::LoadPositionFromFen(const char *fen, std::vector<Player> &players)
     }
 }
 
-void Board::MakeMove(const MoveInfo& move_info){
-    auto& current_piece = move_info.pieceToMove;
-    if(current_piece->IsLegalMove(move_info.moveTo)){
+void Board::MakeMove(const MoveInfo &move_info)
+{
+    auto &current_piece = move_info.pieceToMove;
+    if (current_piece->IsLegalMove(move_info.moveTo))
+    {
         current_piece->SetPosition(move_info.moveTo);
         m_MovesVec.push_back(move_info);
     }
 }
 
-void Board::UnmakeMove(){
-    if(m_MovesVec.empty()) return;
+void Board::UnmakeMove()
+{
+    if (m_MovesVec.empty())
+        return;
 
     auto piece = m_MovesVec.back().pieceToMove;
     piece->SetPosition(m_MovesVec.back().moveFrom);
@@ -181,7 +185,19 @@ void Board::CalculatePseudoLegalMoves(std::vector<Player> &players, std::shared_
     {
     case Piece::PieceType::PAWN:
     {
+        if (curr_pos.y == (m_BoardSize.y - 2) || curr_pos.y == 1)
+        {
+            curr_pseudo_legal.push_back({curr_pos.x, (curr_team == Piece::Team::BLACK) ? curr_pos.y + 1 : curr_pos.y + -1});
+            curr_pseudo_legal.push_back({curr_pos.x, (curr_team == Piece::Team::BLACK) ? curr_pos.y + 2 : curr_pos.y + -2});
+        }
+        else
+        {
+            curr_pseudo_legal.push_back({curr_pos.x, (curr_team == Piece::Team::BLACK) ? curr_pos.y + std::abs(1) : curr_pos.y + -std::abs(1)});
+        }
 
+        curr_pseudo_legal.push_back({curr_pos.x - 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + std::abs(1) : curr_pos.y + -std::abs(1)});
+
+        curr_pseudo_legal.push_back({curr_pos.x + 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + std::abs(1) : curr_pos.y + -std::abs(1)});
         break;
     }
     case Piece::PieceType::BISHOP:
@@ -337,7 +353,8 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
     auto curr_pType = current_piece->GetPieceType();
     auto curr_team = current_piece->GetTeam();
 
-    auto& curr_legal_moves = current_piece->GetLegalMoves();
+    auto &curr_pseudo_legal_moves = current_piece->GetPseudoLegalMoves();
+    auto &curr_legal_moves = current_piece->GetLegalMoves();
     auto &curr_defenders = current_piece->GetDefendingMoves();
     auto &curr_attackers = current_piece->GetAttackMoves();
 
@@ -349,12 +366,77 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
     {
     case Piece::PieceType::PAWN:
     {
+        auto isMovingBack = [&](const Base::Ref<Piece> &entity, const Vec2 &direction)
+        {
+            auto team = entity->GetTeam();
+            if (team == Piece::Team::BLACK && direction.y == -1)
+            {
+                return true;
+            }
+            else if (team == Piece::Team::WHITE && direction.y == 1)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        };
 
+        for (auto &pseudo_legal : curr_pseudo_legal_moves)
+        {
+            Vec2 direction = (pseudo_legal - curr_pos).Normalize();
+
+            if (direction.x == -1 && direction.y == 1 || direction.x == -1 && direction.y == -1)
+            { // dir top-left diagonal
+                auto piece = GetPieceAt(players, pseudo_legal);
+                if (piece != nullptr && piece != current_piece && !isMovingBack(current_piece, direction))
+                {
+                    if (piece->GetTeam() != current_piece->GetTeam())
+                    {
+                        curr_legal_moves.push_back(pseudo_legal);
+                        curr_attackers.push_back(pseudo_legal);
+                    }
+                    else
+                    {
+                        curr_legal_moves.push_back(piece->GetPosition());
+                        curr_defenders.push_back(piece->GetPosition());
+                    }
+                }
+            }
+            else if (direction.x == 1 && direction.y == 1 || direction.x == 1 && direction.y == -1)
+            { // dir top-right diagonal
+                auto piece = GetPieceAt(players, pseudo_legal);
+                if (piece != nullptr && piece != current_piece && !isMovingBack(current_piece, direction))
+                {
+                    if (piece->GetTeam() != current_piece->GetTeam())
+                    {
+                        curr_legal_moves.push_back(pseudo_legal);
+                        curr_attackers.push_back(pseudo_legal);
+                    }
+                    else
+                    {
+                        curr_legal_moves.push_back(piece->GetPosition());
+                        curr_defenders.push_back(piece->GetPosition());
+                    }
+                }
+            }
+            else
+            {
+                if (!isMovingBack(current_piece, direction))
+                {
+                    if (!SquareIsOccupied(players, pseudo_legal))
+                    {
+                        curr_legal_moves.push_back(pseudo_legal);
+                    }
+                }
+            }
+        }
         break;
     }
     case Piece::PieceType::BISHOP:
     {
-        CalculateLegalBishopMoves(players,current_piece);
+        CalculateLegalBishopMoves(players, current_piece);
         break;
     }
 
@@ -380,7 +462,9 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
                     {
                         curr_defenders.push_back(position);
                     }
-                }else{
+                }
+                else
+                {
                     curr_legal_moves.push_back(position);
                 }
             }
@@ -415,7 +499,7 @@ void Board::CalculateLegalBishopMoves(std::vector<Player> &players, Base::Ref<Pi
     auto curr_pType = current_piece->GetPieceType();
     auto curr_team = current_piece->GetTeam();
 
-    auto& curr_legal_moves = current_piece->GetLegalMoves();
+    auto &curr_legal_moves = current_piece->GetLegalMoves();
     auto &curr_defenders = current_piece->GetDefendingMoves();
     auto &curr_attackers = current_piece->GetAttackMoves();
 
@@ -435,7 +519,7 @@ void Board::CalculateLegalBishopMoves(std::vector<Player> &players, Base::Ref<Pi
     // in the bottom-right diagonal
     int br = std::min(m_BoardSize.x - 1 - curr_pos.x, m_BoardSize.x - 1 - curr_pos.y);
 
-    auto fill_moves = [&curr_attackers,&curr_defenders,&curr_legal_moves,&curr_team,this](Base::Ref<Piece> piece, const Vec2 &move) -> void
+    auto fill_moves = [&curr_attackers, &curr_defenders, &curr_legal_moves, &curr_team, this](Base::Ref<Piece> piece, const Vec2 &move) -> void
     {
         if (IsOnBoard(move))
         {
@@ -450,7 +534,9 @@ void Board::CalculateLegalBishopMoves(std::vector<Player> &players, Base::Ref<Pi
                 {
                     curr_defenders.push_back(move);
                 }
-            }else{
+            }
+            else
+            {
                 curr_legal_moves.push_back(move);
             }
         }
@@ -460,9 +546,10 @@ void Board::CalculateLegalBishopMoves(std::vector<Player> &players, Base::Ref<Pi
     for (int i = 1; i <= tl; i++)
     {
         Vec2 position = {curr_pos.x - i, curr_pos.y - i};
-        auto piece = GetPieceAt(players,position);
-        fill_moves(piece,position);
-        if(piece != nullptr){
+        auto piece = GetPieceAt(players, position);
+        fill_moves(piece, position);
+        if (piece != nullptr)
+        {
             break;
         }
     }
@@ -470,9 +557,10 @@ void Board::CalculateLegalBishopMoves(std::vector<Player> &players, Base::Ref<Pi
     for (int i = 1; i <= tr; i++)
     {
         Vec2 position = {curr_pos.x - i, curr_pos.y + i};
-        auto piece = GetPieceAt(players,position);
-        fill_moves(piece,position);
-        if(piece != nullptr){
+        auto piece = GetPieceAt(players, position);
+        fill_moves(piece, position);
+        if (piece != nullptr)
+        {
             break;
         }
     }
@@ -480,9 +568,10 @@ void Board::CalculateLegalBishopMoves(std::vector<Player> &players, Base::Ref<Pi
     for (int i = 1; i <= bl; i++)
     {
         Vec2 position = {curr_pos.x + i, curr_pos.y - i};
-        auto piece = GetPieceAt(players,position);
-        fill_moves(piece,position);
-        if(piece != nullptr){
+        auto piece = GetPieceAt(players, position);
+        fill_moves(piece, position);
+        if (piece != nullptr)
+        {
             break;
         }
     }
@@ -490,19 +579,23 @@ void Board::CalculateLegalBishopMoves(std::vector<Player> &players, Base::Ref<Pi
     for (int i = 1; i <= br; i++)
     {
         Vec2 position = {curr_pos.x + i, curr_pos.y + i};
-        auto piece = GetPieceAt(players,position);
-        fill_moves(piece,position);
-        if(piece != nullptr){
+        auto piece = GetPieceAt(players, position);
+        fill_moves(piece, position);
+        if (piece != nullptr)
+        {
             break;
         }
     }
 }
 
-void Board::CalculateMoves(std::vector<Player>& players){
-  for(auto& player : players){
-    for(auto& piece : player.GetPieces()){
-      CalculatePseudoLegalMoves(players,piece);
-      CalculateLegalMoves(players,piece);
+void Board::CalculateMoves(std::vector<Player> &players)
+{
+    for (auto &player : players)
+    {
+        for (auto &piece : player.GetPieces())
+        {
+            CalculatePseudoLegalMoves(players, piece);
+            CalculateLegalMoves(players, piece);
+        }
     }
-  }
 }

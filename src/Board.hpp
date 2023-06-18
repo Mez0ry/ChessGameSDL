@@ -10,16 +10,19 @@
 #define BOARD_HEIGHT 8
 #define BOARD_WIDTH 8
 
+#define SHORT_CASTLE_MASK 1 << 0
+#define LONG_CASTLE_MASK  1 << 1
+#define EN_PASSANT_MASK   1 << 2
+#define PROMOTION_MASK    1 << 3
+
 class Board {
 public:
   struct MoveInfo{
+    MoveInfo() : pieceToMove(nullptr),specialMove(0),promotionTo(Piece::PieceType::UNKNOWN){}
     Base::Ref<Piece> pieceToMove;
     Vec2 moveFrom;
     Vec2 moveTo;
-    bool shortCastle;
-    bool longCastle;
-    bool enPassant;
-    bool isPromotion;
+    uint8_t specialMove; // 0b - shortCastle, 1b - LongCastle, 2b - enpassant, 3b protomotion
     Piece::PieceType promotionTo;
   };
 public:
