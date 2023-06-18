@@ -195,9 +195,14 @@ void Board::CalculatePseudoLegalMoves(std::vector<Player> &players, std::shared_
             curr_pseudo_legal.push_back({curr_pos.x, (curr_team == Piece::Team::BLACK) ? curr_pos.y + std::abs(1) : curr_pos.y + -std::abs(1)});
         }
 
-        curr_pseudo_legal.push_back({curr_pos.x - 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + std::abs(1) : curr_pos.y + -std::abs(1)});
+        curr_pseudo_legal.push_back({curr_pos.x - 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + 1 : curr_pos.y + -1});
 
-        curr_pseudo_legal.push_back({curr_pos.x + 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + std::abs(1) : curr_pos.y + -std::abs(1)});
+        curr_pseudo_legal.push_back({curr_pos.x + 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + 1 : curr_pos.y + -1});
+        
+        Vec2 left_enpassant = {curr_pos.x - 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + 1 : curr_pos.y + -1},
+             right_enpassant = {curr_pos.x + 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + 1 : curr_pos.y + -1};
+        curr_pseudo_legal.push_back(left_enpassant);
+        curr_pseudo_legal.push_back(right_enpassant);
         break;
     }
     case Piece::PieceType::BISHOP:
@@ -357,18 +362,20 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
     auto &curr_legal_moves = current_piece->GetLegalMoves();
     auto &curr_defenders = current_piece->GetDefendingMoves();
     auto &curr_attackers = current_piece->GetAttackMoves();
+    auto& curr_special_moves = current_piece->GetSpecialMoves();
 
     curr_legal_moves.clear();
     curr_defenders.clear();
     curr_attackers.clear();
+    curr_special_moves.clear();
 
     switch (curr_pType)
     {
     case Piece::PieceType::PAWN:
     {
-        auto isMovingBack = [&](const Base::Ref<Piece> &entity, const Vec2 &direction)
+        auto isMovingBack = [&](const Base::Ref<Piece> &piece, const Vec2 &direction)
         {
-            auto team = entity->GetTeam();
+            auto team = piece->GetTeam();
             if (team == Piece::Team::BLACK && direction.y == -1)
             {
                 return true;
@@ -383,10 +390,72 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
             }
         };
 
+        auto isEnpassant = [&](const Base::Ref<Piece>& piece, const Vec2& direction){
+          if(m_MovesVec.empty()) 
+            return false;
+
+          auto piece_team = piece->GetTeam();
+          Vec2 piece_pos = piece->GetPosition();
+          const int curr_rank = (piece_team == Piece::Team::BLACK) ? 4 : 3;
+
+          MoveInfo& last_played_move =  m_MovesVec.back();
+
+          auto is_required_direction = [&](Piece::Team piece_team,const Vec2& dir){
+            switch(piece_team){
+                case Piece::Team::WHITE:{
+                    return ((dir.x == -1 && dir.y == -1) || (dir.x == 1 && dir.y == -1));
+                    break;
+                }
+                case Piece::Team::BLACK:{
+                    return ((dir.x == -1 && dir.y == 1) ||  (dir.x == 1 && dir.y == 1));
+                    break;
+                }
+            }
+            return false;
+          };
+          
+          auto is_required_rank = [&](int rank,const MoveInfo& last_move,Base::Ref<Piece> piece,Base::Ref<Piece> found_piece){
+            auto piece_team = piece->GetTeam();
+            switch(piece_team){
+            case Piece::Team::WHITE:{
+                return (curr_rank == piece->GetPosition().y && last_move.pieceToMove->GetTeam() == Piece::Team::BLACK && last_played_move.moveFrom.y == 1 && last_played_move.moveTo == found_piece->GetPosition());
+                break;
+            }
+            case Piece::Team::BLACK:{
+                return (curr_rank == piece->GetPosition().y && last_played_move.pieceToMove->GetTeam() == Piece::Team::WHITE && last_played_move.moveFrom.y == m_BoardSize.y - 2 && last_played_move.moveTo == found_piece->GetPosition());
+                break;
+            }
+            }
+            return false;
+          };
+
+          if(is_required_direction(piece->GetTeam(),direction)){
+            auto ent = GetPieceAt(players,{piece_pos.x - 1,piece_pos.y});
+            if(ent != nullptr && ent->GetTeam() != piece->GetTeam() && ent != piece){
+              if(is_required_rank(curr_rank,last_played_move,piece,ent)){
+                return true;
+              }
+            }
+            ent = GetPieceAt(players,{piece_pos.x + 1,piece_pos.y});
+            if(ent != nullptr && ent->GetTeam() != piece->GetTeam() && ent != piece){
+              if(is_required_rank(curr_rank,last_played_move,piece,ent)){
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+
         for (auto &pseudo_legal : curr_pseudo_legal_moves)
         {
             Vec2 direction = (pseudo_legal - curr_pos).Normalize();
 
+            if(isEnpassant(current_piece,direction)){
+                curr_legal_moves.push_back(pseudo_legal);
+                curr_special_moves.push_back(pseudo_legal);
+                continue;
+            }
+            
             if (direction.x == -1 && direction.y == 1 || direction.x == -1 && direction.y == -1)
             { // dir top-left diagonal
                 auto piece = GetPieceAt(players, pseudo_legal);
