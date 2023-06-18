@@ -115,7 +115,7 @@ void Playing::HandleInput(const Base::Ref<EventHandler> event_handler){
   auto& mouse_input = event_handler->GetMouseInput();
   m_MouseInput = mouse_input;
   auto cursor_pos = mouse_input.GetMousePosition();
-
+  
   if(mouse_input.IsPressed(SDL_BUTTON_LEFT)){
     for(auto& player : m_Players){
       for(auto& piece : player.GetPieces()){
@@ -135,7 +135,12 @@ void Playing::HandleInput(const Base::Ref<EventHandler> event_handler){
           new_pos.y = (cursor_pos.y - m_Board.GetTopLeft().y) / m_Board.GetOneSquareSize().GetHeight();
 
           if(m_Board.IsOnBoard(new_pos)){
-            m_Board.MakeMove(piece,new_pos);
+            Board::MoveInfo move_info;
+            move_info.pieceToMove = piece;
+            move_info.moveFrom = piece->GetPosition();
+            move_info.moveTo = new_pos;
+
+            m_Board.MakeMove(move_info);
           }
         }
       }
