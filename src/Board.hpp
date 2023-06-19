@@ -79,7 +79,30 @@ public:
   void RevivePiece(Base::Ref<Piece> piece, const Vec2& killed_pos);
   bool KingInCheck(std::vector<Player> &players,Piece::Team team) const;
   bool MoveLeadToCheck(std::vector<Player>& players,Base::Ref<Piece> piece,const Vec2& move_to);
+
+  bool PieceWasMoved(Base::Ref<Piece> piece) const{
+    for(auto& played_move : m_MovesVec){
+      if(played_move.pieceToMove == piece){
+        return true;
+      }
+    }
+    return false;
+  }
   
+  bool PieceHasDefenders(std::vector<Player>& players, Base::Ref<Piece> current_piece) const{
+    for(auto& player : players){
+      if(player.GetPieces().front()->GetTeam() != current_piece->GetTeam()){
+        continue;
+      }
+
+      for(auto& piece : player.GetPieces()){
+        if(current_piece != piece && piece->IsDefendedSquare(current_piece->GetPosition())){
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 public:
   bool IsOnBoard(const Vec2 &pos) {
     return (pos.y < m_BoardSize.y && pos.x < m_BoardSize.x && pos.y > -1 && pos.x > -1);
