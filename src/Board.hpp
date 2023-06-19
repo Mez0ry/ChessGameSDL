@@ -41,6 +41,7 @@ public:
 
   void CalculateLegalMoves(std::vector<Player> &players, Base::Ref<Piece>& current_piece);
   void CalculateLegalBishopMoves(std::vector<Player>& players, Base::Ref<Piece>& current_piece);
+  void CalculateLegalRookMoves(std::vector<Player>& players, Base::Ref<Piece>& current_piece);
   
   void CalculateMoves(std::vector<Player>& players);
 

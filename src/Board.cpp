@@ -580,13 +580,14 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
 
     case Piece::PieceType::ROOK:
     {
-
+        CalculateLegalRookMoves(players,current_piece);
         break;
     }
 
     case Piece::PieceType::QUEEN:
     {
-
+        CalculateLegalBishopMoves(players, current_piece);
+        CalculateLegalRookMoves(players,current_piece);
         break;
     }
 
@@ -690,6 +691,78 @@ void Board::CalculateLegalBishopMoves(std::vector<Player> &players, Base::Ref<Pi
         if (piece != nullptr)
         {
             break;
+        }
+    }
+}
+
+void Board::CalculateLegalRookMoves(std::vector<Player> &players, Base::Ref<Piece> &current_piece)
+{
+    auto curr_pos = current_piece->GetPosition();
+    auto curr_pType = current_piece->GetPieceType();
+    auto curr_team = current_piece->GetTeam();
+
+    auto &curr_legal_moves = current_piece->GetLegalMoves();
+    auto &curr_defenders = current_piece->GetDefendingMoves();
+    auto &curr_attackers = current_piece->GetAttackMoves();
+    auto& curr_pseudo_legal_moves = current_piece->GetPseudoLegalMoves();
+    
+    auto add_if_legal_move = [&](const Vec2 &pseudo_legal, uint8_t &flags, uint8_t mask)
+    {
+        auto piece = GetPieceAt(players,pseudo_legal);
+        if (IsOnBoard(pseudo_legal))
+        {
+
+            if (piece != nullptr && piece != current_piece)
+            {
+                if (piece->GetTeam() != current_piece->GetTeam())
+                {
+                    curr_legal_moves.push_back(pseudo_legal);
+                    curr_attackers.push_back(pseudo_legal);
+                }
+                else
+                {
+                    if (piece->GetTeam() == current_piece->GetTeam())
+                    {
+                        curr_defenders.push_back(piece->GetPosition());
+                    }
+                }
+                flags |= mask;
+            }
+            else
+            {
+                curr_legal_moves.push_back(pseudo_legal);
+            }
+        }
+        else
+        {
+            flags |= mask;
+        }
+    };
+
+    constexpr uint8_t mask[4] = {1 << 0,  // computing legal moves for dir left finished.
+                                 1 << 1,  // dir right finished
+                                 1 << 2,  // dir up finished
+                                 1 << 3}; // dir down finished
+    uint8_t flags = 0;
+
+    for (int i = 0; i < curr_pseudo_legal_moves.size() && (flags ^ (mask[0] | mask[1] | mask[2] | mask[3])) != 0; i++)
+    {
+        Vec2 direction = (curr_pseudo_legal_moves[i] - curr_pos).Normalize();
+        if (direction.x == -1 && direction.y == 0 && !(flags & mask[0]))
+        {
+            add_if_legal_move(curr_pseudo_legal_moves[i], flags, mask[0]);
+        }
+        else if (direction.x == 1 && direction.y == 0 && !(flags & mask[1]))
+        {
+            add_if_legal_move(curr_pseudo_legal_moves[i], flags, mask[1]);
+        }
+        else if (direction.y == -1 && direction.x == 0 && !(flags & mask[2]))
+        {
+            add_if_legal_move(curr_pseudo_legal_moves[i], flags, mask[2]);
+        }
+        else if (direction.y == 1 && direction.x == 0 && !(flags & mask[3]))
+        {
+            add_if_legal_move(curr_pseudo_legal_moves[i], flags, mask[3]);
         }
     }
 }
