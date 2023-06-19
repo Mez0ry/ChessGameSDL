@@ -1,6 +1,6 @@
 #include "Piece.hpp"
 
-Piece::Piece(){
+Piece::Piece() : m_IsInactive(false){
  m_IsDragging = false;
 }
 

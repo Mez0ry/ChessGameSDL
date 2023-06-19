@@ -10,12 +10,15 @@
 
 struct MoveInfo
 {
-    MoveInfo() : pieceToMove(nullptr), specialMove(0), promotionTo(Piece::PieceType::UNKNOWN) {}
+    MoveInfo() : pieceToMove(nullptr),pieceToKill(nullptr), specialMove(0), promotionTo(Piece::PieceType::UNKNOWN) {}
     Base::Ref<Piece> pieceToMove;
     Vec2 moveFrom;
     Vec2 moveTo;
     uint8_t specialMove; // 0b - shortCastle, 1b - LongCastle, 2b - enpassant, 3b protomotion
     Piece::PieceType promotionTo;
+    
+    Vec2 killedPos;
+    Base::Ref<Piece> pieceToKill;
 };
 
 #endif //!__MOVE_INFO_HPP__

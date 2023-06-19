@@ -88,7 +88,7 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
                                         .build());
   }//!for loop
 
-  m_Board.LoadPositionFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",m_Players);
+  m_Board.LoadPositionFromFen("1n1qk2n/6b1/8/8/8/1B6/8/1N1QK2N w - - 0 1",m_Players);
   
   m_Board.CalculateMoves(m_Players);
 }
@@ -115,11 +115,19 @@ void Playing::HandleInput(const Base::Ref<EventHandler> event_handler){
   auto& mouse_input = event_handler->GetMouseInput();
   m_MouseInput = mouse_input;
   auto cursor_pos = mouse_input.GetMousePosition();
-  
+
+  if(keyboard_input.IsPressed(SDLK_1)){
+    m_Board.UnmakeMove();
+  } else if(keyboard_input.IsPressed(SDLK_2)){
+    if(m_Board.KingInCheck(m_Players,Piece::Team::WHITE)){
+      std::cout<<"In Check!"<<'\n';
+    }
+  }
+
   if(mouse_input.IsPressed(SDL_BUTTON_LEFT)){
     for(auto& player : m_Players){
       for(auto& piece : player.GetPieces()){
-        if(piece->GetTexture().PointIsOnTexture(cursor_pos)){
+        if(piece->GetTexture().PointIsOnTexture(cursor_pos) && !piece->IsInactive()){
           piece->SetDragging(true);
         }
       }
@@ -127,20 +135,28 @@ void Playing::HandleInput(const Base::Ref<EventHandler> event_handler){
   }else if(mouse_input.IsReleased(SDL_BUTTON_LEFT)){
     for(auto& player : m_Players){
       for(auto& piece : player.GetPieces()){
-        if(piece->IsDragging()){
+        if(piece->IsDragging() && !piece->IsInactive()){
           piece->SetDragging(false);
 
           Vec2 new_pos;
           new_pos.x = (cursor_pos.x - m_Board.GetTopLeft().x) / m_Board.GetOneSquareSize().GetWidth();
           new_pos.y = (cursor_pos.y - m_Board.GetTopLeft().y) / m_Board.GetOneSquareSize().GetHeight();
 
-          if(m_Board.IsOnBoard(new_pos)){
-            Board::MoveInfo move_info;
+          if(m_Board.IsOnBoard(new_pos) && !m_Board.MoveLeadToCheck(m_Players,piece,new_pos)){
+            MoveInfo move_info;
             move_info.pieceToMove = piece;
             move_info.moveFrom = piece->GetPosition();
             move_info.moveTo = new_pos;
 
+            if(piece->IsAttackedSquare(move_info.moveTo)){
+              move_info.pieceToKill = m_Board.GetPieceAt(m_Players,move_info.moveTo);
+              move_info.killedPos = move_info.pieceToKill->GetPosition();
+              
+            }
+
             m_Board.MakeMove(move_info);
+            m_Board.CalculateMoves(m_Players);
+            
           }
         }
       }
@@ -158,6 +174,8 @@ void Playing::Render(){
 
   for(auto& player : m_Players){
     for(auto& piece : player.GetPieces()){
+      if(piece->IsInactive()) continue;
+
       if(piece->IsDragging()){
         DragEntity(m_MouseInput.GetMousePosition(),m_Renderer).Execute(piece);
       }else{

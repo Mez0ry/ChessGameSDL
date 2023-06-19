@@ -57,6 +57,9 @@ public:
   
   Team GetTeam() const {return m_Team;}
   PieceType GetPieceType() const {return m_Type;}
+
+  bool IsInactive() const {return m_IsInactive;}
+  void SetInactive(bool status) {m_IsInactive = status;}
 public:
   std::vector<Vec2>& GetPseudoLegalMoves(){
     return m_PseudoLegalMoves;
@@ -113,6 +116,7 @@ private:
   Team m_Team = Team::UNKNOWN;
   Vec2 m_Position; // position on map
   Texture m_Texture;
+  bool m_IsInactive = false;
 private:
   std::vector<Vec2> m_PseudoLegalMoves;
   std::vector<Vec2> m_LegalMoves;

@@ -150,23 +150,39 @@ void Board::LoadPositionFromFen(const char *fen, std::vector<Player> &players)
     }
 }
 
-void Board::MakeMove(const MoveInfo &move_info)
+void Board::MakePseudoMove(const MoveInfo &move_info)
 {
     auto &current_piece = move_info.pieceToMove;
-    if (current_piece->IsLegalMove(move_info.moveTo))
+    current_piece->SetPosition(move_info.moveTo);
+    m_MovesVec.push_back(move_info);
+}
+
+bool Board::MakeMove(const MoveInfo &move_info)
+{
+    if (move_info.pieceToMove->IsLegalMove(move_info.moveTo))
     {
-        current_piece->SetPosition(move_info.moveTo);
-        m_MovesVec.push_back(move_info);
+        if (move_info.pieceToKill)
+        {
+            RemovePiece(move_info.pieceToKill);
+        }
+        MakePseudoMove(move_info);
+        return true;
     }
+    return false;
 }
 
 void Board::UnmakeMove()
 {
     if (m_MovesVec.empty())
         return;
+    auto &move_info = m_MovesVec.back();
+    auto &piece = move_info.pieceToMove;
 
-    auto piece = m_MovesVec.back().pieceToMove;
-    piece->SetPosition(m_MovesVec.back().moveFrom);
+    piece->SetPosition(move_info.moveFrom);
+    if (move_info.pieceToKill)
+    {
+        RevivePiece(move_info.pieceToKill, move_info.killedPos);
+    }
     m_MovesVec.pop_back();
 }
 
@@ -174,6 +190,9 @@ void Board::UnmakeMove()
 #pragma GCC diagnostic ignored "-Wswitch"
 void Board::CalculatePseudoLegalMoves(std::vector<Player> &players, std::shared_ptr<Piece> &current_piece)
 {
+    if (current_piece->IsInactive())
+        return;
+
     auto curr_pos = current_piece->GetPosition();
     auto curr_pType = current_piece->GetPieceType();
     auto curr_team = current_piece->GetTeam();
@@ -198,7 +217,7 @@ void Board::CalculatePseudoLegalMoves(std::vector<Player> &players, std::shared_
         curr_pseudo_legal.push_back({curr_pos.x - 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + 1 : curr_pos.y + -1});
 
         curr_pseudo_legal.push_back({curr_pos.x + 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + 1 : curr_pos.y + -1});
-        
+
         Vec2 left_enpassant = {curr_pos.x - 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + 1 : curr_pos.y + -1},
              right_enpassant = {curr_pos.x + 1, (curr_team == Piece::Team::BLACK) ? curr_pos.y + 1 : curr_pos.y + -1};
         curr_pseudo_legal.push_back(left_enpassant);
@@ -354,6 +373,9 @@ void Board::CalculatePseudoRookMoves(std::vector<Player> &players, Base::Ref<Pie
 
 void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Piece> &current_piece)
 {
+    if (current_piece->IsInactive())
+        return;
+
     auto curr_pos = current_piece->GetPosition();
     auto curr_pType = current_piece->GetPieceType();
     auto curr_team = current_piece->GetTeam();
@@ -362,7 +384,7 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
     auto &curr_legal_moves = current_piece->GetLegalMoves();
     auto &curr_defenders = current_piece->GetDefendingMoves();
     auto &curr_attackers = current_piece->GetAttackMoves();
-    auto& curr_special_moves = current_piece->GetSpecialMoves();
+    auto &curr_special_moves = current_piece->GetSpecialMoves();
 
     curr_legal_moves.clear();
     curr_defenders.clear();
@@ -390,67 +412,82 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
             }
         };
 
-        auto isEnpassant = [&](const Base::Ref<Piece>& piece, const Vec2& direction){
-          if(m_MovesVec.empty()) 
-            return false;
+        auto isEnpassant = [&](const Base::Ref<Piece> &piece, const Vec2 &direction)
+        {
+            if (m_MovesVec.empty())
+                return false;
 
-          auto piece_team = piece->GetTeam();
-          Vec2 piece_pos = piece->GetPosition();
-          const int curr_rank = (piece_team == Piece::Team::BLACK) ? 4 : 3;
+            auto piece_team = piece->GetTeam();
+            Vec2 piece_pos = piece->GetPosition();
+            const int curr_rank = (piece_team == Piece::Team::BLACK) ? 4 : 3;
 
-          MoveInfo& last_played_move =  m_MovesVec.back();
+            MoveInfo &last_played_move = m_MovesVec.back();
 
-          auto is_required_direction = [&](Piece::Team piece_team,const Vec2& dir){
-            switch(piece_team){
-                case Piece::Team::WHITE:{
+            auto is_required_direction = [&](Piece::Team piece_team, const Vec2 &dir)
+            {
+                switch (piece_team)
+                {
+                case Piece::Team::WHITE:
+                {
                     return ((dir.x == -1 && dir.y == -1) || (dir.x == 1 && dir.y == -1));
                     break;
                 }
-                case Piece::Team::BLACK:{
-                    return ((dir.x == -1 && dir.y == 1) ||  (dir.x == 1 && dir.y == 1));
+                case Piece::Team::BLACK:
+                {
+                    return ((dir.x == -1 && dir.y == 1) || (dir.x == 1 && dir.y == 1));
                     break;
+                }
+                }
+                return false;
+            };
+
+            auto is_required_rank = [&](int rank, const MoveInfo &last_move, Base::Ref<Piece> piece, Base::Ref<Piece> found_piece)
+            {
+                auto piece_team = piece->GetTeam();
+                switch (piece_team)
+                {
+                case Piece::Team::WHITE:
+                {
+                    return (curr_rank == piece->GetPosition().y && last_move.pieceToMove->GetTeam() == Piece::Team::BLACK && last_played_move.moveFrom.y == 1 && last_played_move.moveTo == found_piece->GetPosition());
+                    break;
+                }
+                case Piece::Team::BLACK:
+                {
+                    return (curr_rank == piece->GetPosition().y && last_played_move.pieceToMove->GetTeam() == Piece::Team::WHITE && last_played_move.moveFrom.y == m_BoardSize.y - 2 && last_played_move.moveTo == found_piece->GetPosition());
+                    break;
+                }
+                }
+                return false;
+            };
+
+            if (is_required_direction(piece->GetTeam(), direction))
+            {
+                auto ent = GetPieceAt(players, {piece_pos.x - 1, piece_pos.y});
+                if (ent != nullptr && ent->GetTeam() != piece->GetTeam() && ent != piece)
+                {
+                    if (is_required_rank(curr_rank, last_played_move, piece, ent))
+                    {
+                        return true;
+                    }
+                }
+                ent = GetPieceAt(players, {piece_pos.x + 1, piece_pos.y});
+                if (ent != nullptr && ent->GetTeam() != piece->GetTeam() && ent != piece)
+                {
+                    if (is_required_rank(curr_rank, last_played_move, piece, ent))
+                    {
+                        return true;
+                    }
                 }
             }
             return false;
-          };
-          
-          auto is_required_rank = [&](int rank,const MoveInfo& last_move,Base::Ref<Piece> piece,Base::Ref<Piece> found_piece){
-            auto piece_team = piece->GetTeam();
-            switch(piece_team){
-            case Piece::Team::WHITE:{
-                return (curr_rank == piece->GetPosition().y && last_move.pieceToMove->GetTeam() == Piece::Team::BLACK && last_played_move.moveFrom.y == 1 && last_played_move.moveTo == found_piece->GetPosition());
-                break;
-            }
-            case Piece::Team::BLACK:{
-                return (curr_rank == piece->GetPosition().y && last_played_move.pieceToMove->GetTeam() == Piece::Team::WHITE && last_played_move.moveFrom.y == m_BoardSize.y - 2 && last_played_move.moveTo == found_piece->GetPosition());
-                break;
-            }
-            }
-            return false;
-          };
-
-          if(is_required_direction(piece->GetTeam(),direction)){
-            auto ent = GetPieceAt(players,{piece_pos.x - 1,piece_pos.y});
-            if(ent != nullptr && ent->GetTeam() != piece->GetTeam() && ent != piece){
-              if(is_required_rank(curr_rank,last_played_move,piece,ent)){
-                return true;
-              }
-            }
-            ent = GetPieceAt(players,{piece_pos.x + 1,piece_pos.y});
-            if(ent != nullptr && ent->GetTeam() != piece->GetTeam() && ent != piece){
-              if(is_required_rank(curr_rank,last_played_move,piece,ent)){
-                return true;
-              }
-            }
-          }
-          return false;
         };
 
         for (auto &pseudo_legal : curr_pseudo_legal_moves)
         {
             Vec2 direction = (pseudo_legal - curr_pos).Normalize();
 
-            if(isEnpassant(current_piece,direction)){
+            if (isEnpassant(current_piece, direction))
+            {
                 curr_legal_moves.push_back(pseudo_legal);
                 curr_special_moves.push_back(pseudo_legal);
                 continue;
@@ -669,26 +706,58 @@ void Board::CalculateMoves(std::vector<Player> &players)
     }
 }
 
-bool Board::KingInCheck(std::vector<Player> &players,Piece::Team team) const{
+MoveInfo Board::RemovePiece(Base::Ref<Piece> piece)
+{
+    MoveInfo move_info;
+    move_info.pieceToKill = piece;
+    move_info.killedPos = piece->GetPosition();
+
+    piece->SetInactive(true);
+    piece->SetPosition({-100, -100});
+
+    return move_info;
+}
+
+void Board::RevivePiece(Base::Ref<Piece> piece, const Vec2 &killed_pos)
+{
+    piece->SetInactive(false);
+    piece->SetPosition(killed_pos);
+}
+
+bool Board::KingInCheck(std::vector<Player> &players, Piece::Team team) const
+{
     Base::Ref<Piece> king = nullptr;
-    
-    for(auto& player : players){
-        if(player.GetPieces().front()->GetTeam() == team){
-            king = player.FindPieceIf([&](Base::Ref<Piece> piece){return (piece->GetPieceType() == Piece::PieceType::KING);});
+
+    for (auto &player : players)
+    {
+        if (player.GetPieces().front()->GetTeam() == team)
+        {
+            king = player.FindPieceIf([&](Base::Ref<Piece> piece)
+                                      { return (piece->GetPieceType() == Piece::PieceType::KING); });
             break;
-        }else{
+        }
+        else
+        {
             continue;
         }
     }
 
-    if(king == nullptr) return false;
+    if (king == nullptr)
+        return false;
 
     /*opponent*/
-    for(auto& player : players){
-        if(player.GetPieces().front()->GetTeam() == team) continue;
+    for (auto &player : players)
+    {
+        if (player.GetPieces().front()->GetTeam() == team)
+            continue;
 
-        for(auto& piece : player.GetPieces()){
-            if(piece->IsAttackedSquare(king->GetPosition())){
+        for (auto &piece : player.GetPieces())
+        {
+            if (piece->IsInactive())
+                continue;
+
+            if (piece->IsAttackedSquare(king->GetPosition()))
+            {
                 return true;
             }
         }
@@ -697,19 +766,30 @@ bool Board::KingInCheck(std::vector<Player> &players,Piece::Team team) const{
     return false;
 }
 
-bool Board::MoveLeadToCheck(std::vector<Player>& players,Base::Ref<Piece> piece,const Vec2& move_to){
+bool Board::MoveLeadToCheck(std::vector<Player> &players, Base::Ref<Piece> piece, const Vec2 &move_to)
+{
     MoveInfo move_info;
     move_info.moveFrom = piece->GetPosition();
     move_info.moveTo = move_to;
     move_info.pieceToMove = piece;
 
-    MakeMove(move_info);
-    CalculateMoves(players);
+    if (piece->IsAttackedSquare(move_to))
+    {
+        move_info.pieceToKill = GetPieceAt(players, move_to);
+        move_info.killedPos = move_info.pieceToKill->GetPosition();
+    }
 
-    bool in_check = KingInCheck(players,piece->GetTeam());
+    bool in_check = false;
 
-    UnmakeMove();
-    CalculateMoves(players);
-    
+    if (MakeMove(move_info))
+    {
+        CalculateMoves(players);
+
+        in_check = KingInCheck(players, piece->GetTeam());
+
+        UnmakeMove();
+        CalculateMoves(players);
+    }
+
     return in_check;
 }

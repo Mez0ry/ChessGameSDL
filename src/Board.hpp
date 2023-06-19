@@ -24,9 +24,14 @@ public:
   void LoadPositionFromFen(const char *fen, std::vector<Player> &players);
   
   /**
+   * @brief makes move without any checks
+  */
+  void MakePseudoMove(const MoveInfo& move_info);
+  
+  /**
    * @brief makes move if move is legal
   */
-  void MakeMove(const MoveInfo& move_info);
+  bool MakeMove(const MoveInfo& move_info);
   
   void UnmakeMove();
 
@@ -69,9 +74,11 @@ public:
     return nullptr;
   }
   
+  MoveInfo RemovePiece(Base::Ref<Piece> piece);
+  void RevivePiece(Base::Ref<Piece> piece, const Vec2& killed_pos);
   bool KingInCheck(std::vector<Player> &players,Piece::Team team) const;
   bool MoveLeadToCheck(std::vector<Player>& players,Base::Ref<Piece> piece,const Vec2& move_to);
-
+  
 public:
   bool IsOnBoard(const Vec2 &pos) {
     return (pos.y < m_BoardSize.y && pos.x < m_BoardSize.x && pos.y > -1 && pos.x > -1);
@@ -84,7 +91,6 @@ public:
   ObjectSize GetOneSquareSize() const { return m_OneSquareSize; }
 
   const Vec2 &GetTopLeft() const { return m_BoardTopLeft; }
-
 private:
   std::array<uint8_t, BOARD_HEIGHT * BOARD_WIDTH> m_Board;
   Texture m_BlackSquareTexture;
