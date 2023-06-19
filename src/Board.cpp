@@ -159,13 +159,27 @@ void Board::MakePseudoMove(const MoveInfo &move_info)
 
 bool Board::MakeMove(const MoveInfo &move_info)
 {
-    if (move_info.pieceToMove->IsLegalMove(move_info.moveTo))
+    MoveInfo info;
+    info = move_info;
+
+    if (info.pieceToMove->IsLegalMove(info.moveTo))
     {
-        if (move_info.pieceToKill)
+        if (info.pieceToKill)
         {
-            RemovePiece(move_info.pieceToKill);
+            RemovePiece(info.pieceToKill);
         }
-        MakePseudoMove(move_info);
+
+        if(Piece::SpecialMove* special_move_info = info.pieceToMove->GetSpecialMoveIf([&](const Piece::SpecialMove& special_move){return (special_move.moveInfo.moveTo == move_info.moveTo);}); special_move_info != nullptr){
+            if((special_move_info->specialMove & EN_PASSANT_MASK) != 0){
+                
+                if(special_move_info->moveInfo.pieceToKill){
+                    info.pieceToKill = special_move_info->moveInfo.pieceToKill;
+                    info.killedPos = special_move_info->moveInfo.pieceToKill->GetPosition();
+                    RemovePiece(special_move_info->moveInfo.pieceToKill);
+                }
+            }
+        }
+        MakePseudoMove(info);
         return true;
     }
     return false;
@@ -412,7 +426,7 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
             }
         };
 
-        auto isEnpassant = [&](const Base::Ref<Piece> &piece, const Vec2 &direction)
+        auto isEnpassant = [&](const Base::Ref<Piece> &piece, const Vec2 &direction,std::vector<Piece::SpecialMove>& special_moves,const Vec2& pseudo_move)
         {
             if (m_MovesVec.empty())
                 return false;
@@ -467,6 +481,12 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
                 {
                     if (is_required_rank(curr_rank, last_played_move, piece, ent))
                     {
+                        Piece::SpecialMove spec_move;
+                        spec_move.specialMove |= EN_PASSANT_MASK;
+                        spec_move.moveInfo.pieceToKill = ent;
+                        spec_move.moveInfo.killedPos = ent->GetPosition();
+                        spec_move.moveInfo.moveTo = pseudo_move;
+                        special_moves.push_back(spec_move);
                         return true;
                     }
                 }
@@ -475,6 +495,12 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
                 {
                     if (is_required_rank(curr_rank, last_played_move, piece, ent))
                     {
+                        Piece::SpecialMove spec_move;
+                        spec_move.specialMove |= EN_PASSANT_MASK;
+                        spec_move.moveInfo.pieceToKill = ent;
+                        spec_move.moveInfo.killedPos = ent->GetPosition();
+                        spec_move.moveInfo.moveTo = pseudo_move;
+                        special_moves.push_back(spec_move);
                         return true;
                     }
                 }
@@ -486,10 +512,9 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
         {
             Vec2 direction = (pseudo_legal - curr_pos).Normalize();
 
-            if (isEnpassant(current_piece, direction))
+            if (isEnpassant(current_piece, direction,curr_special_moves,pseudo_legal))
             {
                 curr_legal_moves.push_back(pseudo_legal);
-                curr_special_moves.push_back(pseudo_legal);
                 continue;
             }
 
