@@ -618,7 +618,29 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
 
     case Piece::PieceType::KING:
     {
-
+        for(auto& move : curr_pseudo_legal_moves){
+            auto entity = GetPieceAt(players, move);
+            if (Board::IsOnBoard(move))
+            {
+                if (entity != nullptr)
+                {
+                    if ((curr_team != entity->GetTeam() && !PieceHasDefenders(players,entity)))
+                    {
+                        curr_attackers.push_back(move);
+                        curr_legal_moves.push_back(move);
+                    }
+                    else
+                    {
+                        curr_defenders.push_back(move);
+                    }
+                }
+                else
+                {
+                    curr_legal_moves.push_back(move);
+                }
+            }
+        }
+        
         break;
     }
     }
