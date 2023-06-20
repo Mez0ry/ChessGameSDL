@@ -27,17 +27,6 @@ public:
     ENPASSANT,CASTLE,PROMOTION
   };
 
-  // struct EnPassant{
-  //   Move move;
-  // };
-
-  // struct Castle{
-  //   Base::Ref<Piece> rook;
-  //   Base::Ref<Piece> king;
-  //   Move rookMove;
-  //   Move kingMove;
-  // };
-
   struct SpecialMove{
     struct EnPassant{
       Move move;
@@ -58,12 +47,7 @@ public:
     SpecialMoveType type;
     std::variant<EnPassant,Castle,Promotion> variant;
   };
-  // struct SpecialMove{
-  //   SpecialMove() : specialMove(0), promotionTo(Piece::PieceType::UNKNOWN) {}
-  //   uint8_t specialMove; // 0b - shortCastle, 1b - LongCastle, 2b - enpassant, 3b protomotion
-  //   Piece::PieceType promotionTo;
-  //   MoveInfo moveInfo;
-  // };
+
 private:
   friend PieceBuilder;
 
@@ -156,12 +140,6 @@ public:
     auto it = std::find_if(m_DefendingMoves.begin(),m_DefendingMoves.end(),[&](const Vec2& pos){return (pos == square);});
     return (it != m_DefendingMoves.end()) ? true : false;
   }
-  
-  // bool IsSpecialMove(const Vec2& square) const{
-  //   if(m_SpecialMoves.empty()) return false;
-  //   auto it = std::find_if(m_SpecialMoves.begin(),m_SpecialMoves.end(),[&](const SpecialMove& special_move){return (special_move.moveInfo.moveTo == square);});
-  //   return (it != m_SpecialMoves.end()) ? true : false;
-  // }
 
 private:
   PieceType m_Type = PieceType::UNKNOWN;
@@ -172,8 +150,8 @@ private:
 private:
   std::vector<Vec2> m_PseudoLegalMoves;
   std::vector<Vec2> m_LegalMoves;
-  std::vector<Vec2> m_AttackMoves; // piece attacking piece from opposite team
-  std::vector<Vec2> m_DefendingMoves; // piece attacking piece from its own team
+  std::vector<Vec2> m_AttackMoves; // current piece that is attacking piece from opposite team
+  std::vector<Vec2> m_DefendingMoves; // current piece that is attacking piece from its own team
   std::vector<SpecialMove> m_SpecialMoves;
 };
 #endif //! __PIECE_HPP__

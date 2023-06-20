@@ -5,11 +5,6 @@
 
 class Piece;
 
-#define SHORT_CASTLE_MASK 1 << 0
-#define LONG_CASTLE_MASK  1 << 1
-#define EN_PASSANT_MASK   1 << 2
-#define PROMOTION_MASK    1 << 3
-
 struct Move
 {
     Move() : pieceToMove(nullptr),pieceToKill(nullptr) {}
