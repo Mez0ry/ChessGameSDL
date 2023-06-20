@@ -287,6 +287,12 @@ void Board::UnmakeMove()
                     unmake_normal_move(std::get<Piece::SpecialMove::EnPassant>(special_move.variant).move);
                     break;
                 }
+                case Piece::SpecialMoveType::CASTLE:{
+                    auto& castle = std::get<Piece::SpecialMove::Castle>(special_move.variant);
+                    unmake_normal_move(castle.kingMove);
+                    unmake_normal_move(castle.rookMove);
+                    break;
+                }
             }
             break;
         }
@@ -1024,7 +1030,7 @@ void Board::CalculateCastle(std::vector<Player>& players, Base::Ref<Piece>& king
         castle.rookMove.pieceToMove = right_rook;
         
         curr_special_moves.push_back(spec_move);
-        
+
         auto second_spec_move = spec_move;
         auto& second_castle = std::get<Piece::SpecialMove::Castle>(second_spec_move.variant);
         second_castle.castleMove = castle_move2;
