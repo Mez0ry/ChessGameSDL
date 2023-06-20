@@ -107,7 +107,7 @@ public:
           }else if(type == Piece::SpecialMoveType::CASTLE){
             auto& castle_move = std::get<Piece::SpecialMove::Castle>(special_move.variant);
             
-            return (castle_move.king == piece || castle_move.rook == piece);
+            return (castle_move.kingMove.pieceToMove == piece || castle_move.rookMove.pieceToMove == piece);
           }
           break;
         }
