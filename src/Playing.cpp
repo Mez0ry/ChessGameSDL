@@ -116,14 +116,6 @@ void Playing::HandleInput(const Base::Ref<EventHandler> event_handler){
   m_MouseInput = mouse_input;
   auto cursor_pos = mouse_input.GetMousePosition();
 
-  if(keyboard_input.IsPressed(SDLK_1)){
-    m_Board.UnmakeMove();
-  } else if(keyboard_input.IsPressed(SDLK_2)){
-    if(m_Board.KingInCheck(m_Players,Piece::Team::WHITE)){
-      std::cout<<"In Check!"<<'\n';
-    }
-  }
-
   if(event_handler->OnMouseButtonDown()){
      if(mouse_input.IsPressed(SDL_BUTTON_LEFT)){
       for(auto& player : m_Players){
