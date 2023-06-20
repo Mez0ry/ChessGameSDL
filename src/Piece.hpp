@@ -4,7 +4,8 @@
 #include "Entity.hpp"
 #include "Texture.hpp"
 #include "Vector.hpp"
-#include "MoveInfo.hpp"
+#include "Move.hpp"
+#include <variant>
 
 class PieceBuilder;
 
@@ -22,12 +23,42 @@ public:
 
   enum class Team { WHITE, BLACK, UNKNOWN };
 
-  struct SpecialMove{
-    SpecialMove() : specialMove(0), promotionTo(Piece::PieceType::UNKNOWN) {}
-    uint8_t specialMove; // 0b - shortCastle, 1b - LongCastle, 2b - enpassant, 3b protomotion
-    Piece::PieceType promotionTo;
-    MoveInfo moveInfo;
+  enum class SpecialMoveType : uint8_t{
+    ENPASSANT,CASTLE,PROMOTION
   };
+
+  // struct EnPassant{
+  //   Move move;
+  // };
+
+  // struct Castle{
+  //   Base::Ref<Piece> rook;
+  //   Base::Ref<Piece> king;
+  //   Move rookMove;
+  //   Move kingMove;
+  // };
+
+  struct SpecialMove{
+    struct EnPassant{
+      Move move;
+    };
+
+    struct Castle{
+      Base::Ref<Piece> rook;
+      Base::Ref<Piece> king;
+      Move rookMove;
+      Move kingMove;
+    };
+
+    SpecialMoveType type;
+    std::variant<EnPassant,Castle> variant;
+  };
+  // struct SpecialMove{
+  //   SpecialMove() : specialMove(0), promotionTo(Piece::PieceType::UNKNOWN) {}
+  //   uint8_t specialMove; // 0b - shortCastle, 1b - LongCastle, 2b - enpassant, 3b protomotion
+  //   Piece::PieceType promotionTo;
+  //   MoveInfo moveInfo;
+  // };
 private:
   friend PieceBuilder;
 
@@ -120,11 +151,11 @@ public:
     return (it != m_DefendingMoves.end()) ? true : false;
   }
   
-  bool IsSpecialMove(const Vec2& square) const{
-    if(m_SpecialMoves.empty()) return false;
-    auto it = std::find_if(m_SpecialMoves.begin(),m_SpecialMoves.end(),[&](const SpecialMove& special_move){return (special_move.moveInfo.moveTo == square);});
-    return (it != m_SpecialMoves.end()) ? true : false;
-  }
+  // bool IsSpecialMove(const Vec2& square) const{
+  //   if(m_SpecialMoves.empty()) return false;
+  //   auto it = std::find_if(m_SpecialMoves.begin(),m_SpecialMoves.end(),[&](const SpecialMove& special_move){return (special_move.moveInfo.moveTo == square);});
+  //   return (it != m_SpecialMoves.end()) ? true : false;
+  // }
 
 private:
   PieceType m_Type = PieceType::UNKNOWN;

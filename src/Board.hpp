@@ -6,10 +6,18 @@
 #include <array>
 #include <vector>
 #include "Vector.hpp"
-#include "MoveInfo.hpp"
+#include "Move.hpp"
 
 #define BOARD_HEIGHT 8
 #define BOARD_WIDTH 8
+
+struct MoveInfo{
+  enum class MoveType : uint8_t{
+    MOVE,SPECIAL_MOVE
+  };
+  MoveType type;
+  std::variant<Move,Piece::SpecialMove> info;
+};
 
 class Board {
 public:
@@ -31,7 +39,7 @@ public:
   /**
    * @brief makes move if move is legal
   */
-  bool MakeMove(const MoveInfo& move_info);
+  bool MakeMove(const Move& move_info);
   
   void UnmakeMove();
 
@@ -42,7 +50,8 @@ public:
   void CalculateLegalMoves(std::vector<Player> &players, Base::Ref<Piece>& current_piece);
   void CalculateLegalBishopMoves(std::vector<Player>& players, Base::Ref<Piece>& current_piece);
   void CalculateLegalRookMoves(std::vector<Player>& players, Base::Ref<Piece>& current_piece);
-  
+  void CalculateCastle(std::vector<Player>& players, Base::Ref<Piece>& king_piece);
+
   void CalculateMoves(std::vector<Player>& players);
 
   bool SquareIsOccupied(std::vector<Player> &players,const Vec2& square) const{
@@ -75,15 +84,33 @@ public:
     return nullptr;
   }
   
-  MoveInfo RemovePiece(Base::Ref<Piece> piece);
+  void RemovePiece(Base::Ref<Piece> piece);
   void RevivePiece(Base::Ref<Piece> piece, const Vec2& killed_pos);
   bool KingInCheck(std::vector<Player> &players,Piece::Team team) const;
   bool MoveLeadToCheck(std::vector<Player>& players,Base::Ref<Piece> piece,const Vec2& move_to);
 
   bool PieceWasMoved(Base::Ref<Piece> piece) const{
     for(auto& played_move : m_MovesVec){
-      if(played_move.pieceToMove == piece){
-        return true;
+      switch(static_cast<MoveInfo::MoveType>(played_move.type)){
+        case MoveInfo::MoveType::MOVE:{
+          auto& move = std::get<Move>(played_move.info);
+          return (move.pieceToMove == piece);
+          break;
+        }
+        case MoveInfo::MoveType::SPECIAL_MOVE:{
+          auto& special_move = std::get<Piece::SpecialMove>(played_move.info);
+          
+          auto type = static_cast<Piece::SpecialMoveType>(special_move.type);
+          if(type == Piece::SpecialMoveType::ENPASSANT){
+            auto& enpassant = std::get<Piece::SpecialMove::EnPassant>(special_move.variant);
+            return ( enpassant.move.pieceToMove == piece);
+          }else if(type == Piece::SpecialMoveType::CASTLE){
+            auto& castle_move = std::get<Piece::SpecialMove::Castle>(special_move.variant);
+            
+            return (castle_move.king == piece || castle_move.rook == piece);
+          }
+          break;
+        }
       }
     }
     return false;
