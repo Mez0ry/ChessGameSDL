@@ -169,6 +169,17 @@ void Board::MakePseudoMove(const MoveInfo &move_info)
                     current_piece->SetPosition(enpassant.move.moveTo);
                     break;
                 }
+
+                case Piece::SpecialMoveType::CASTLE:{
+                    auto& castle = std::get<Piece::SpecialMove::Castle>(special_move.variant);
+                    
+                    auto& rook_move_to = castle.rookMove.moveTo;
+                    castle.rookMove.pieceToMove->SetPosition(rook_move_to);
+                    
+                    auto& king_move_to = castle.kingMove.moveTo;
+                    castle.kingMove.pieceToMove->SetPosition(king_move_to);
+                    break;
+                }
             }
             break;
         }
@@ -199,7 +210,7 @@ bool Board::MakeMove(const Move &move)
                 }
                 case Piece::SpecialMoveType::CASTLE:{
                     auto& castle_info = std::get<Piece::SpecialMove::Castle>(special_move.variant);
-                    
+                    return (castle_info.castleMove == move.moveTo);
                     break;
                 }
             }
@@ -223,6 +234,18 @@ bool Board::MakeMove(const Move &move)
                         enpassant.move.pieceToMove = move.pieceToMove;
                         RemovePiece(enpassant_info.move.pieceToKill);
                     }
+                    break;
+                }
+                case Piece::SpecialMoveType::CASTLE:{
+                    auto& castle_info = std::get<Piece::SpecialMove::Castle>(special_move_info->variant);
+                    context.type = Piece::SpecialMoveType::CASTLE;
+                    context.variant.emplace<Piece::SpecialMove::Castle>(Piece::SpecialMove::Castle());
+
+                    auto& castle = std::get<Piece::SpecialMove::Castle>(context.variant);
+
+                    castle.castleMove = castle_info.castleMove;
+                    castle.kingMove   = castle_info.kingMove;
+                    castle.rookMove   = castle_info.rookMove;
                     break;
                 }
             }
@@ -722,6 +745,7 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
             }
         }
         
+        CalculateCastle(players,current_piece);
         break;
     }
     }
@@ -896,7 +920,7 @@ void Board::CalculateLegalRookMoves(std::vector<Player> &players, Base::Ref<Piec
 }
 
 void Board::CalculateCastle(std::vector<Player>& players, Base::Ref<Piece>& king_piece){
-    if(KingInCheck(players,king_piece->GetTeam())){
+    if(KingInCheck(players,king_piece->GetTeam()) || PieceWasMoved(king_piece)){
         return;
     }
 
@@ -946,8 +970,66 @@ void Board::CalculateCastle(std::vector<Player>& players, Base::Ref<Piece>& king
 
         Vec2 towards_king_dir = (curr_pos - left_rook->GetPosition()).Normalize();
 
-        //curr_legal_moves.push_back();
-       // curr_special_moves.push_back();
+        Vec2 castle_move1{left_rook->GetPosition() + towards_king_dir},
+             castle_move2{left_rook->GetPosition()};
+
+        curr_legal_moves.push_back(castle_move1);
+        curr_legal_moves.push_back(castle_move2);
+
+        Piece::SpecialMove spec_move;
+        spec_move.variant.emplace<Piece::SpecialMove::Castle>(Piece::SpecialMove::Castle());
+        spec_move.type = Piece::SpecialMoveType::CASTLE;
+        auto& castle = std::get<Piece::SpecialMove::Castle>(spec_move.variant);
+
+        castle.castleMove = castle_move1;
+        castle.kingMove.moveFrom = king_piece->GetPosition();
+        castle.kingMove.moveTo = {king_piece->GetPosition().x - 2,king_piece->GetPosition().y};
+        castle.kingMove.pieceToMove = king_piece;
+
+        castle.rookMove.moveFrom = left_rook->GetPosition();
+        castle.rookMove.moveTo = {left_rook->GetPosition().x + 3,left_rook->GetPosition().y};
+        castle.rookMove.pieceToMove = left_rook;
+        
+        curr_special_moves.push_back(spec_move);
+
+        auto second_spec_move = spec_move;
+        auto& second_castle = std::get<Piece::SpecialMove::Castle>(second_spec_move.variant);
+        second_castle.castleMove = castle_move2;
+
+        curr_special_moves.push_back(second_spec_move);
+    }
+
+    if(short_side_castle_available){
+
+        Vec2 towards_king_dir = (curr_pos - right_rook->GetPosition()).Normalize();
+
+        Vec2 castle_move1{right_rook->GetPosition() + towards_king_dir},
+             castle_move2{right_rook->GetPosition()};
+
+        curr_legal_moves.push_back(castle_move1);
+        curr_legal_moves.push_back(castle_move2);
+
+        Piece::SpecialMove spec_move;
+        spec_move.variant.emplace<Piece::SpecialMove::Castle>(Piece::SpecialMove::Castle());
+        spec_move.type = Piece::SpecialMoveType::CASTLE;
+        auto& castle = std::get<Piece::SpecialMove::Castle>(spec_move.variant);
+
+        castle.castleMove = castle_move1;
+        castle.kingMove.moveFrom = king_piece->GetPosition();
+        castle.kingMove.moveTo = {king_piece->GetPosition().x + 2,king_piece->GetPosition().y};
+        castle.kingMove.pieceToMove = king_piece;
+        
+        castle.rookMove.moveFrom = right_rook->GetPosition();
+        castle.rookMove.moveTo = {right_rook->GetPosition().x - 2,right_rook->GetPosition().y};
+        castle.rookMove.pieceToMove = right_rook;
+        
+        curr_special_moves.push_back(spec_move);
+        
+        auto second_spec_move = spec_move;
+        auto& second_castle = std::get<Piece::SpecialMove::Castle>(second_spec_move.variant);
+        second_castle.castleMove = castle_move2;
+
+        curr_special_moves.push_back(second_spec_move);
     }
 }
 
