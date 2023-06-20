@@ -49,8 +49,14 @@ public:
       Move kingMove;
     };
 
+    struct Promotion{
+      Base::Ref<Piece> piece;
+      Piece::PieceType promoteFrom;
+      Piece::PieceType promoteTo;
+    };
+
     SpecialMoveType type;
-    std::variant<EnPassant,Castle> variant;
+    std::variant<EnPassant,Castle,Promotion> variant;
   };
   // struct SpecialMove{
   //   SpecialMove() : specialMove(0), promotionTo(Piece::PieceType::UNKNOWN) {}
