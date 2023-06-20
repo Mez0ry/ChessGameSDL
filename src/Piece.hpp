@@ -50,9 +50,9 @@ public:
     };
 
     struct Promotion{
-      Base::Ref<Piece> piece;
       Piece::PieceType promoteFrom;
       Piece::PieceType promoteTo;
+      Move move;
     };
 
     SpecialMoveType type;
@@ -99,6 +99,7 @@ public:
   const ObjectSize GetSize() const override { return m_Texture.GetSize(); }
   
   Team GetTeam() const {return m_Team;}
+  void SetPieceType(PieceType type) {m_Type = type;}
   PieceType GetPieceType() const {return m_Type;}
 
   bool IsInactive() const {return m_IsInactive;}
