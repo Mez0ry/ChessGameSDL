@@ -1,9 +1,10 @@
 #include "Board.hpp"
 #include "Entity.hpp"
+#include "EventHandler.hpp"
 
 Vec2 Board::m_BoardTopLeft = {0, 0};
 
-Board::Board(const Base::Ref<Renderer> renderer)
+Board::Board(const Base::Ref<Renderer> renderer) : m_WaitingForPromotion(false),m_SeletectedPromotionOption(Piece::PieceType::UNKNOWN)
 {
     m_Renderer = renderer;
     m_WhiteSquareTexture.LoadTexture(m_Renderer, "resources/Boards/board_3_basic.png");
@@ -15,6 +16,60 @@ Board::Board(const Base::Ref<Renderer> renderer)
     m_BlackSquareTexture.SetSize(m_OneSquareSize);
     m_BlackSquareTexture.SetSize<SourceRect>(m_OneSquareSize);
     m_BlackSquareTexture.SetPosition<SourceRect>({128, 0});
+
+    std::string texture_path;
+    texture_path = "resources/Pieces/" + std::string("w_") + "bishop.png";
+    Texture w_bishop_texture(m_Renderer,texture_path);
+    
+    texture_path = "resources/Pieces/" + std::string("w_") + "knight.png";
+    Texture w_knight_texture(m_Renderer,texture_path);
+    
+    texture_path = "resources/Pieces/" + std::string("w_") + "rook.png";
+    Texture w_rook_texture(m_Renderer,texture_path);
+
+    texture_path = "resources/Pieces/" + std::string("w_") + "queen.png";
+    Texture w_queen_texture(m_Renderer,texture_path);
+
+    m_PromotionOptions[0].texture = w_bishop_texture;
+    m_PromotionOptions[0].type = Piece::PieceType::BISHOP;
+
+    m_PromotionOptions[1].texture = w_knight_texture;
+    m_PromotionOptions[1].type = Piece::PieceType::KNIGHT;
+
+    m_PromotionOptions[2].texture = w_rook_texture;
+    m_PromotionOptions[2].type = Piece::PieceType::ROOK;
+
+    m_PromotionOptions[3].texture = w_queen_texture;
+    m_PromotionOptions[3].type = Piece::PieceType::QUEEN;
+
+    texture_path = "resources/Pieces/" + std::string("b_") + "bishop.png";
+    Texture b__bishop_texture(m_Renderer,texture_path);
+    
+    texture_path = "resources/Pieces/" + std::string("b_") + "knight.png";
+    Texture b_knight_texture(m_Renderer,texture_path);
+    
+    texture_path = "resources/Pieces/" + std::string("b_") + "rook.png";
+    Texture b_rook_texture(m_Renderer,texture_path);
+
+    texture_path = "resources/Pieces/" + std::string("b_") + "queen.png";
+    Texture b_queen_texture(m_Renderer,texture_path);
+
+    m_PromotionOptions[4].texture = b__bishop_texture;
+    m_PromotionOptions[4].type = Piece::PieceType::BISHOP;
+
+    m_PromotionOptions[5].texture = b_knight_texture;
+    m_PromotionOptions[5].type = Piece::PieceType::KNIGHT;
+
+    m_PromotionOptions[6].texture = b_rook_texture;
+    m_PromotionOptions[6].type = Piece::PieceType::ROOK;
+
+    m_PromotionOptions[7].texture = b_queen_texture;
+    m_PromotionOptions[7].type = Piece::PieceType::QUEEN;
+
+    for(auto& option : m_PromotionOptions){
+        option.texture.SetRect<SourceRect>({0,0},ObjectSize(128,128));
+        option.texture.SetRect({0,0},m_OneSquareSize);
+    }
 }
 
 Board::~Board() {}
@@ -42,6 +97,36 @@ void Board::OnResize(const Base::Ref<Window> window)
 
     m_WhiteSquareTexture.SetSize(m_OneSquareSize);
     m_BlackSquareTexture.SetSize(m_OneSquareSize);
+
+    for(auto& promo_option : m_PromotionOptions){
+        promo_option.texture.SetSize(m_OneSquareSize);
+    }
+}
+
+void Board::HandleInput(const Base::Ref<EventHandler> event_handler){
+    auto& mouse_input = event_handler->GetMouseInput();
+    if(event_handler->OnMouseButtonUp()){
+        if(mouse_input.IsReleased(SDL_BUTTON_LEFT)){
+            if(m_WaitingForPromotion){
+                for(auto& option : m_PromotionOptions){
+                    if(option.texture.PointIsOnTexture(mouse_input.GetMousePosition())){
+                        auto& last_move_info = m_MovesVec.back();
+                        if(last_move_info.type == MoveInfo::MoveType::SPECIAL_MOVE){
+                            auto& special_move = std::get<Piece::SpecialMove>(last_move_info.info);
+                            if(std::holds_alternative<Piece::SpecialMove::Promotion>(special_move.variant)){
+                                auto& promotion_info =  std::get<Piece::SpecialMove::Promotion>(special_move.variant);
+                                
+                                promotion_info.move.pieceToMove->GetTexture().ShareSDLTexture(option.texture);
+                                promotion_info.promoteTo = option.type;
+                                promotion_info.move.pieceToMove->SetPieceType(promotion_info.promoteTo);
+                                m_WaitingForPromotion = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 void Board::Update(float dt) {}
@@ -80,14 +165,42 @@ void Board::Render()
             }
         }
     }
+
+    RenderPromotionOptions();
+}
+
+void Board::RenderPromotionOptions(){
+    if(m_WaitingForPromotion){
+        auto square_size = m_OneSquareSize;
+
+        auto& last_move_info = m_MovesVec.back();
+        if(last_move_info.type == MoveInfo::MoveType::SPECIAL_MOVE){
+            auto& special_move = std::get<Piece::SpecialMove>(last_move_info.info);
+            if(std::holds_alternative<Piece::SpecialMove::Promotion>(special_move.variant)){
+                auto& promotion_info =  std::get<Piece::SpecialMove::Promotion>(special_move.variant);
+
+                auto& promo_piece_pos = promotion_info.move.moveTo;
+                auto& promo_piece_size = promotion_info.move.pieceToMove->GetSize();
+                int offset = 0;
+                
+                size_t start_index = (promotion_info.move.pieceToMove->GetTeam() == Piece::Team::WHITE) ? 0 : 4;
+                size_t end_index = (promotion_info.move.pieceToMove->GetTeam() == Piece::Team::WHITE) ? 4 : m_PromotionOptions.size();
+                
+                for(;start_index < end_index;start_index++){
+                    m_PromotionOptions[start_index].texture.SetPosition(GetRelativePos(promo_piece_size,{promo_piece_pos.x,(promotion_info.move.pieceToMove->GetTeam() == Piece::Team::WHITE) ? promo_piece_pos.y + offset : promo_piece_pos.y - offset}));
+                    m_Renderer->Render(m_PromotionOptions[start_index].texture);
+                    offset++;
+                }
+            }
+        }
+    }
 }
 
 void Board::RenderEntity(const Base::Ref<Renderer> renderer, const Base::Ref<Entity> entity)
 {
     const Vec2 &pos = entity->GetPosition();
     ObjectSize size = entity->GetSize();
-    const Vec2 texture_pos = {m_BoardTopLeft.x + pos.x * size.GetWidth(),
-                              m_BoardTopLeft.y + pos.y * size.GetHeight()};
+    const Vec2 texture_pos = GetRelativePos(size,pos);
     entity->GetTexture().SetPosition(texture_pos);
     entity->GetTexture().SetSize(size);
 
@@ -147,6 +260,12 @@ void Board::LoadPositionFromFen(const char *fen, std::vector<Player> &players)
             //   m_CurrentTurn = Team::BLACK;
             // }
         }
+
+        for(auto& piece : pieces){
+            if(processed_pieces_map.count(piece) == 0){
+                RemovePiece(piece);
+            }
+        }
     }
 }
 
@@ -178,6 +297,16 @@ void Board::MakePseudoMove(const MoveInfo &move_info)
                     
                     auto& king_move_to = castle.kingMove.moveTo;
                     castle.kingMove.pieceToMove->SetPosition(king_move_to);
+                    break;
+                }
+                case Piece::SpecialMoveType::PROMOTION:{
+                    auto& promotion = std::get<Piece::SpecialMove::Promotion>(special_move.variant);
+
+                    auto& move_to = promotion.move.moveTo;
+                    auto& piece_to_move = promotion.move.pieceToMove;
+
+                    piece_to_move->SetPosition(move_to);
+                    m_WaitingForPromotion = true;
                     break;
                 }
             }
@@ -213,6 +342,11 @@ bool Board::MakeMove(const Move &move)
                     return (castle_info.castleMove == move.moveTo);
                     break;
                 }
+                case Piece::SpecialMoveType::PROMOTION:{
+                    auto& promotion_info = std::get<Piece::SpecialMove::Promotion>(special_move.variant);
+                    return (promotion_info.move.moveTo == move.moveTo);
+                    break;
+                }
             }
             return false;
         };
@@ -246,6 +380,23 @@ bool Board::MakeMove(const Move &move)
                     castle.castleMove = castle_info.castleMove;
                     castle.kingMove   = castle_info.kingMove;
                     castle.rookMove   = castle_info.rookMove;
+                    break;
+                }
+                case Piece::SpecialMoveType::PROMOTION:{
+                    auto& promotion_info = std::get<Piece::SpecialMove::Promotion>(special_move_info->variant);
+                    context.type = Piece::SpecialMoveType::PROMOTION;
+                    context.variant.emplace<Piece::SpecialMove::Promotion>(Piece::SpecialMove::Promotion());
+
+                    auto& promotion = std::get<Piece::SpecialMove::Promotion>(context.variant);
+
+                    promotion.move        = promotion_info.move;
+                    promotion.move.pieceToMove       = promotion_info.move.pieceToMove;
+                    promotion.promoteFrom = promotion_info.promoteFrom;
+                    promotion.promoteTo   = promotion_info.promoteTo;
+
+                    if(promotion.move.pieceToKill){
+                        RemovePiece(promotion.move.pieceToKill);
+                    }
                     break;
                 }
             }
@@ -291,6 +442,20 @@ void Board::UnmakeMove()
                     auto& castle = std::get<Piece::SpecialMove::Castle>(special_move.variant);
                     unmake_normal_move(castle.kingMove);
                     unmake_normal_move(castle.rookMove);
+                    break;
+                }
+                case Piece::SpecialMoveType::PROMOTION:{
+
+                    auto& promotion = std::get<Piece::SpecialMove::Promotion>(special_move.variant);
+                    unmake_normal_move(promotion.move);
+                    if(promotion.promoteFrom != promotion.move.pieceToMove->GetPieceType()){
+                        PromoteTo(promotion.move.pieceToMove,promotion.promoteFrom);
+                        promotion.move.pieceToMove->SetPieceType(promotion.promoteFrom);
+                    }
+
+                    if(m_WaitingForPromotion){
+                        m_WaitingForPromotion = false;
+                    }
                     break;
                 }
             }
@@ -618,6 +783,35 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
             return false;
         };
 
+        auto HandleIfPromotionMove = [&,this](Base::Ref<Piece> piece,const Vec2& pos){
+            auto rank = (piece->GetTeam() == Piece::Team::BLACK) ? (m_BoardSize.y - 1) : 0;
+            if(pos.y == rank){
+                Piece::SpecialMove spec_move;
+                spec_move.type = Piece::SpecialMoveType::PROMOTION;
+                spec_move.variant.emplace<Piece::SpecialMove::Promotion>(Piece::SpecialMove::Promotion());
+                auto& promotion = std::get<Piece::SpecialMove::Promotion>(spec_move.variant);
+
+                promotion.move.pieceToMove = piece;
+                promotion.promoteFrom = piece->GetPieceType();
+                promotion.promoteTo = Piece::PieceType::UNKNOWN;
+
+                promotion.move.pieceToMove = piece;
+                promotion.move.moveFrom = piece->GetPosition();
+                promotion.move.moveTo = pos;
+
+                auto enemy_piece = GetPieceAt(players,promotion.move.moveTo);
+
+                if(enemy_piece){
+                    promotion.move.killedPos = enemy_piece->GetPosition();
+                    promotion.move.pieceToKill = enemy_piece;
+                }
+
+                curr_special_moves.push_back(spec_move);
+                return true;
+            }
+            return false;
+        };
+
         for (auto &pseudo_legal : curr_pseudo_legal_moves)
         {
             Vec2 direction = (pseudo_legal - curr_pos).Normalize();
@@ -627,7 +821,10 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
                 curr_legal_moves.push_back(pseudo_legal);
                 continue;
             }
-
+            if(HandleIfPromotionMove(current_piece,pseudo_legal)){
+                curr_legal_moves.push_back(pseudo_legal);
+                continue;
+            }
             if (direction.x == -1 && direction.y == 1 || direction.x == -1 && direction.y == -1)
             { // dir top-left diagonal
                 auto piece = GetPieceAt(players, pseudo_legal);
@@ -1050,6 +1247,61 @@ void Board::CalculateMoves(std::vector<Player> &players)
         }
     }
 }
+
+#pragma GCC diagnostic push // Also works for clang compiler
+#pragma GCC diagnostic ignored "-Wswitch"
+
+void Board::PromoteTo(Base::Ref<Piece> piece,Piece::PieceType piece_type){
+    std::string prefix = (piece->GetTeam() == Piece::Team::WHITE) ? "w_" : "b_";
+
+    std::string texture_path = "resources/Pieces/" + prefix + "pawn.png";
+    Texture pawn_texture(m_Renderer,texture_path);
+    
+    texture_path = "resources/Pieces/" + prefix + "bishop.png";
+    Texture bishop_texture(m_Renderer,texture_path);
+    
+    texture_path = "resources/Pieces/" + prefix + "knight.png";
+    Texture knight_texture(m_Renderer,texture_path);
+    
+    texture_path = "resources/Pieces/" + prefix + "rook.png";
+    Texture rook_texture(m_Renderer,texture_path);
+
+    texture_path = "resources/Pieces/" + prefix + "queen.png";
+    Texture queen_texture(m_Renderer,texture_path);
+
+    texture_path = "resources/Pieces/" + prefix + "king.png";
+    Texture king_texture(m_Renderer,texture_path);
+
+    switch(piece_type){
+        case Piece::PieceType::PAWN:{
+            piece->GetTexture().ShareSDLTexture(pawn_texture);
+            break;
+        }
+        case Piece::PieceType::BISHOP:{
+            piece->GetTexture().ShareSDLTexture(bishop_texture);
+            break;
+        }
+
+        case Piece::PieceType::KNIGHT:{
+            piece->GetTexture().ShareSDLTexture(knight_texture);
+            break;
+        }
+
+        case Piece::PieceType::ROOK:{
+            piece->GetTexture().ShareSDLTexture(rook_texture);
+            break;
+        }
+        case Piece::PieceType::QUEEN:{
+            piece->GetTexture().ShareSDLTexture(queen_texture);
+            break;
+        }
+        case Piece::PieceType::KING:{
+            piece->GetTexture().ShareSDLTexture(king_texture);
+            break;
+        }
+    }
+}
+#pragma GCC diagnostic pop
 
 void Board::RemovePiece(Base::Ref<Piece> piece)
 {

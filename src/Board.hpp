@@ -7,9 +7,12 @@
 #include <vector>
 #include "Vector.hpp"
 #include "Move.hpp"
+#include "MouseInput.hpp"
 
 #define BOARD_HEIGHT 8
 #define BOARD_WIDTH 8
+
+class EventHandler;
 
 struct MoveInfo{
   enum class MoveType : uint8_t{
@@ -25,8 +28,11 @@ public:
   ~Board();
 
   void OnResize(const Base::Ref<Window> window);
+  void HandleInput(const Base::Ref<EventHandler> event_handler);
   void Update(float dt);
   void Render();
+  void RenderPromotionOptions();
+  
   static void RenderEntity(const Base::Ref<Renderer> renderer,const Base::Ref<Entity> entity);
 
   void LoadPositionFromFen(const char *fen, std::vector<Player> &players);
@@ -83,7 +89,9 @@ public:
 
     return nullptr;
   }
-  
+
+  void PromoteTo(Base::Ref<Piece> piece,Piece::PieceType piece_type);
+
   void RemovePiece(Base::Ref<Piece> piece);
   void RevivePiece(Base::Ref<Piece> piece, const Vec2& killed_pos);
   bool KingInCheck(std::vector<Player> &players,Piece::Team team) const;
@@ -143,6 +151,11 @@ public:
 
   const Vec2 &GetTopLeft() const { return m_BoardTopLeft; }
 private:
+ static Vec2 GetRelativePos(ObjectSize size,const Vec2& pos){
+  Vec2 res = {m_BoardTopLeft.x + pos.x * size.GetWidth(), m_BoardTopLeft.y + pos.y * size.GetHeight()};
+  return res;
+ }
+private:
   std::array<uint8_t, BOARD_HEIGHT * BOARD_WIDTH> m_Board;
   Texture m_BlackSquareTexture;
   Texture m_WhiteSquareTexture;
@@ -153,5 +166,14 @@ private:
   ObjectSize m_OneSquareSize = ObjectSize(128, 128);
   static Vec2 m_BoardTopLeft;
   std::vector<MoveInfo> m_MovesVec;
+private:
+  struct PromotionOption{
+    Texture texture;
+    Piece::PieceType type;
+  };
+  bool m_WaitingForPromotion;
+  Piece::PieceType m_SeletectedPromotionOption;
+
+  std::array<PromotionOption,8> m_PromotionOptions; // first 4 - white_textures, second 4 - black_textures
 };
 #endif //! __BOARD_HPP__
