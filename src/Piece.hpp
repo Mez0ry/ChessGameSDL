@@ -44,8 +44,7 @@ public:
     };
 
     struct Castle{
-      Base::Ref<Piece> rook;
-      Base::Ref<Piece> king;
+      Vec2 castleMove;
       Move rookMove;
       Move kingMove;
     };
