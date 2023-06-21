@@ -99,7 +99,12 @@ Playing::~Playing(){
 
 
 void Playing::OnResize(){
-
+  m_Board.OnResize(m_Window);
+  for(auto& player : m_Players){
+    for(auto& piece : player.GetPieces()){
+      piece->SetSize(m_Board.GetOneSquareSize());
+    }
+  }
 }
 
 void Playing::OnCreate(){
