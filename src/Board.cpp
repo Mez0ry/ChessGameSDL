@@ -821,10 +821,7 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
                 curr_legal_moves.push_back(pseudo_legal);
                 continue;
             }
-            if(HandleIfPromotionMove(current_piece,pseudo_legal)){
-                curr_legal_moves.push_back(pseudo_legal);
-                continue;
-            }
+            
             if (direction.x == -1 && direction.y == 1 || direction.x == -1 && direction.y == -1)
             { // dir top-left diagonal
                 auto piece = GetPieceAt(players, pseudo_legal);
@@ -834,10 +831,10 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
                     {
                         curr_legal_moves.push_back(pseudo_legal);
                         curr_attackers.push_back(pseudo_legal);
+                        HandleIfPromotionMove(current_piece,pseudo_legal);
                     }
                     else
                     {
-                        curr_legal_moves.push_back(piece->GetPosition());
                         curr_defenders.push_back(piece->GetPosition());
                     }
                 }
@@ -851,10 +848,10 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
                     {
                         curr_legal_moves.push_back(pseudo_legal);
                         curr_attackers.push_back(pseudo_legal);
+                        HandleIfPromotionMove(current_piece,pseudo_legal);
                     }
                     else
                     {
-                        curr_legal_moves.push_back(piece->GetPosition());
                         curr_defenders.push_back(piece->GetPosition());
                     }
                 }
@@ -865,6 +862,7 @@ void Board::CalculateLegalMoves(std::vector<Player> &players, std::shared_ptr<Pi
                 {
                     if (!SquareIsOccupied(players, pseudo_legal))
                     {
+                        HandleIfPromotionMove(current_piece,pseudo_legal);
                         curr_legal_moves.push_back(pseudo_legal);
                     }
                 }
@@ -1367,7 +1365,9 @@ bool Board::MoveLeadToCheck(std::vector<Player> &players, Base::Ref<Piece> piece
     if (piece->IsAttackedSquare(move_to))
     {
         move.pieceToKill = GetPieceAt(players, move_to);
-        move.killedPos = move.pieceToKill->GetPosition();
+        if(move.pieceToKill){
+            move.killedPos = move.pieceToKill->GetPosition();
+        }
     }
 
     bool in_check = false;
@@ -1383,4 +1383,51 @@ bool Board::MoveLeadToCheck(std::vector<Player> &players, Base::Ref<Piece> piece
     }
 
     return in_check;
+}
+
+std::vector<Vec2> Board::GetAvailableMoves(std::vector<Player>& players,Player& player){
+    std::vector<Vec2> available_moves;
+
+    for(auto& piece : player.GetPieces()){
+        auto& legal_moves = piece ->GetLegalMoves();
+        for(auto& move : legal_moves){
+            if(!MoveLeadToCheck(players,piece,move)){
+                available_moves.push_back(move);
+            }
+        }
+    }
+
+    return available_moves;
+}
+
+bool Board::IsCheckmated(std::vector<Player>& players, Piece::Team team){
+    Base::Ref<Piece> king = nullptr;
+
+    for (auto &player : players)
+    {
+        if (player.GetPieces().front()->GetTeam() == team)
+        {
+            king = player.FindPieceIf([&](Base::Ref<Piece> piece) { return (piece->GetPieceType() == Piece::PieceType::KING); });
+            break;
+        }
+        else
+        {
+            continue;
+        }
+    }
+
+    if (king == nullptr)
+        return false;
+
+    for(auto& player : players){
+        if(player.GetPieces().front()->GetTeam() != team) continue;
+        auto available_moves = GetAvailableMoves(players,player);
+
+        for(auto& piece : player.GetPieces()){
+            if(KingInCheck(players,king->GetTeam()) && available_moves.empty()){
+                return true;
+            }
+        }
+    }
+    return false;
 }
