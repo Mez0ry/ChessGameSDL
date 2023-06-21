@@ -138,6 +138,13 @@ public:
     }
     return false;
   }
+
+  std::vector<Vec2> GetAvailableMoves(std::vector<Player>& players,Player& player);
+  /**
+   * @brief checks whether king of player was checkmated or no
+  */
+  bool IsCheckmated(std::vector<Player>& players, Piece::Team team);
+
 public:
   bool IsOnBoard(const Vec2 &pos) {
     return (pos.y < m_BoardSize.y && pos.x < m_BoardSize.x && pos.y > -1 && pos.x > -1);
