@@ -88,7 +88,7 @@ Playing::Playing(const Base::Ref<Renderer> renderer, const Base::Ref<Window> win
                                         .build());
   }//!for loop
 
-  m_Board.LoadPositionFromFen("4kbnr/PPP5/8/8/8/8/6pp/R3K3 w Qk - 0 1",m_Players);
+  m_Board.LoadPositionFromFen(CHESS_BOARD_DEFAULT_FEN,m_Players);
   
   m_Board.CalculateMoves(m_Players);
 }
@@ -139,7 +139,7 @@ void Playing::HandleInput(const Base::Ref<EventHandler> event_handler){
             new_pos.x = (cursor_pos.x - m_Board.GetTopLeft().x) / m_Board.GetOneSquareSize().GetWidth();
             new_pos.y = (cursor_pos.y - m_Board.GetTopLeft().y) / m_Board.GetOneSquareSize().GetHeight();
 
-            if(m_Board.IsOnBoard(new_pos) && !m_Board.MoveLeadToCheck(m_Players,piece,new_pos)){
+            if(m_Board.IsOnBoard(new_pos) && !m_Board.MoveLeadToCheck(m_Players,piece,new_pos) && piece->GetTeam() == m_Board.GetCurrentTurn() && m_Board.GetBoardState() == Board::BoardState::EMPTY){
               Move move;
               move.pieceToMove = piece;
               move.moveFrom = piece->GetPosition();
@@ -149,10 +149,20 @@ void Playing::HandleInput(const Base::Ref<EventHandler> event_handler){
                 move.pieceToKill = m_Board.GetPieceAt(m_Players,move.moveTo);
                 move.killedPos = move.pieceToKill->GetPosition();
               }
-
-              m_Board.MakeMove(move);
-              m_Board.CalculateMoves(m_Players);
               
+              if(m_Board.MakeMove(move)){
+                m_Board.CalculateMoves(m_Players);
+                
+                m_Board.SwitchTurn();
+
+                if(m_Board.IsCheckmated(m_Players,m_Players[0])){
+                  m_Board.SetBoardState(Board::BoardState::LOSE);
+                }else if(m_Board.IsCheckmated(m_Players,m_Players[1])){
+                  m_Board.SetBoardState(Board::BoardState::WIN);
+                }else if(m_Board.IsStalemate(m_Players)){
+                  m_Board.SetBoardState(Board::BoardState::STALEMATE);
+                }
+              }
             }
           }
         }
