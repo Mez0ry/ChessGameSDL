@@ -1400,34 +1400,22 @@ std::vector<Vec2> Board::GetAvailableMoves(std::vector<Player>& players,Player& 
     return available_moves;
 }
 
-bool Board::IsCheckmated(std::vector<Player>& players, Piece::Team team){
-    Base::Ref<Piece> king = nullptr;
-
-    for (auto &player : players)
-    {
-        if (player.GetPieces().front()->GetTeam() == team)
-        {
-            king = player.FindPieceIf([&](Base::Ref<Piece> piece) { return (piece->GetPieceType() == Piece::PieceType::KING); });
-            break;
-        }
-        else
-        {
-            continue;
-        }
-    }
-
-    if (king == nullptr)
+bool Board::IsCheckmated(std::vector<Player>& players, Player& player){
+    Base::Ref<Piece> curr_king = FindKing(player);
+    
+    if (curr_king == nullptr)
         return false;
 
-    for(auto& player : players){
-        if(player.GetPieces().front()->GetTeam() != team) continue;
-        auto available_moves = GetAvailableMoves(players,player);
+    auto available_moves = GetAvailableMoves(players,player);
+    return (KingInCheck(players,curr_king->GetTeam()) && available_moves.empty());
+}
 
-        for(auto& piece : player.GetPieces()){
-            if(KingInCheck(players,king->GetTeam()) && available_moves.empty()){
-                return true;
-            }
-        }
-    }
-    return false;
+bool Board::IsStalemate(std::vector<Player>& players,Player& player){
+    Base::Ref<Piece> curr_king = FindKing(player);
+    
+    if (curr_king == nullptr)
+        return false;
+
+    auto available_moves = GetAvailableMoves(players,player);
+    return (!KingInCheck(players,curr_king->GetTeam()) && available_moves.empty());
 }

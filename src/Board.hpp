@@ -139,11 +139,20 @@ public:
     return false;
   }
 
+  Base::Ref<Piece> FindKing(Player& player){
+    for(auto& piece : player.GetPieces()){
+      if(piece->GetPieceType() == Piece::PieceType::KING){
+        return piece;
+      }
+    }
+    return nullptr;
+  }
+
   std::vector<Vec2> GetAvailableMoves(std::vector<Player>& players,Player& player);
-  /**
-   * @brief checks whether king of player was checkmated or no
-  */
-  bool IsCheckmated(std::vector<Player>& players, Piece::Team team);
+  
+  bool IsCheckmated(std::vector<Player>& players,Player& player);
+
+  bool IsStalemate(std::vector<Player>& players,Player& player);
 
 public:
   bool IsOnBoard(const Vec2 &pos) {
