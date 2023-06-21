@@ -4,7 +4,7 @@
 
 Vec2 Board::m_BoardTopLeft = {0, 0};
 
-Board::Board(const Base::Ref<Renderer> renderer) : m_WaitingForPromotion(false),m_SeletectedPromotionOption(Piece::PieceType::UNKNOWN)
+Board::Board(const Base::Ref<Renderer> renderer) : m_WaitingForPromotion(false),m_SeletectedPromotionOption(Piece::PieceType::UNKNOWN), m_CurrentTurn(Piece::Team::WHITE),m_BoardState(BoardState::EMPTY)
 {
     m_Renderer = renderer;
     m_WhiteSquareTexture.LoadTexture(m_Renderer, "resources/Boards/board_3_basic.png");
@@ -254,11 +254,11 @@ void Board::LoadPositionFromFen(const char *fen, std::vector<Player> &players)
                 processed_pieces_map.insert(std::make_pair(found_pieces.front(), fen[i]));
             }
 
-            // if (fen[i] == 'w') {
-            //   m_CurrentTurn = Team::WHITE;
-            // } else if (fen[i] == 'b') {
-            //   m_CurrentTurn = Team::BLACK;
-            // }
+            if (fen[i] == 'w') {
+                m_CurrentTurn = Piece::Team::WHITE;
+            } else if (fen[i] == 'b') {
+                m_CurrentTurn = Piece::Team::BLACK;
+            }
         }
 
         for(auto& piece : pieces){
@@ -1146,7 +1146,7 @@ void Board::CalculateCastle(std::vector<Player>& players, Base::Ref<Piece>& king
     if(left_rook == nullptr){
         long_side_castle_available = false;
     }
-
+    
     if(right_rook == nullptr){
         short_side_castle_available = false;
     }
@@ -1410,12 +1410,19 @@ bool Board::IsCheckmated(std::vector<Player>& players, Player& player){
     return (KingInCheck(players,curr_king->GetTeam()) && available_moves.empty());
 }
 
-bool Board::IsStalemate(std::vector<Player>& players,Player& player){
-    Base::Ref<Piece> curr_king = FindKing(player);
-    
-    if (curr_king == nullptr)
-        return false;
+bool Board::IsStalemate(std::vector<Player>& players){
 
-    auto available_moves = GetAvailableMoves(players,player);
-    return (!KingInCheck(players,curr_king->GetTeam()) && available_moves.empty());
+    for(auto& player : players){
+
+        Base::Ref<Piece> curr_king = FindKing(player);
+        
+        if (curr_king == nullptr)
+            return false;
+
+        auto available_moves = GetAvailableMoves(players,player);
+        if((!KingInCheck(players,curr_king->GetTeam()) && available_moves.empty())){
+            return true;
+        }
+    }
+    return false;
 }

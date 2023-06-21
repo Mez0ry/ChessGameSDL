@@ -24,6 +24,10 @@ struct MoveInfo{
 
 class Board {
 public:
+enum class BoardState : uint8_t{
+  WIN,LOSE,STALEMATE,EMPTY
+};
+public:
   Board(const Base::Ref<Renderer> renderer);
   ~Board();
 
@@ -152,12 +156,18 @@ public:
   
   bool IsCheckmated(std::vector<Player>& players,Player& player);
 
-  bool IsStalemate(std::vector<Player>& players,Player& player);
+  bool IsStalemate(std::vector<Player>& players);
 
 public:
   bool IsOnBoard(const Vec2 &pos) {
     return (pos.y < m_BoardSize.y && pos.x < m_BoardSize.x && pos.y > -1 && pos.x > -1);
   }
+
+  Piece::Team GetCurrentTurn() const {return m_CurrentTurn;}
+  void SwitchTurn(){m_CurrentTurn = static_cast<Piece::Team>((uint8_t)m_CurrentTurn ^ 1);}
+
+  BoardState GetBoardState() const {return m_BoardState;}
+  void SetBoardState(BoardState state){m_BoardState = state;}
 
   uint32_t GetArrayIndexAt(const Vec2 &pos) const {
     return (pos.y * BOARD_WIDTH + pos.x);
@@ -166,6 +176,7 @@ public:
   ObjectSize GetOneSquareSize() const { return m_OneSquareSize; }
 
   const Vec2 &GetTopLeft() const { return m_BoardTopLeft; }
+
 private:
  static Vec2 GetRelativePos(ObjectSize size,const Vec2& pos){
   Vec2 res = {m_BoardTopLeft.x + pos.x * size.GetWidth(), m_BoardTopLeft.y + pos.y * size.GetHeight()};
@@ -177,11 +188,14 @@ private:
   Texture m_WhiteSquareTexture;
   const Vec2 m_BoardSize = {BOARD_WIDTH, BOARD_HEIGHT};
 
-private:
-  Base::Ref<Renderer> m_Renderer;
   ObjectSize m_OneSquareSize = ObjectSize(128, 128);
   static Vec2 m_BoardTopLeft;
   std::vector<MoveInfo> m_MovesVec;
+
+  Piece::Team m_CurrentTurn;
+  BoardState m_BoardState;
+private:
+  Base::Ref<Renderer> m_Renderer;
 private:
   struct PromotionOption{
     Texture texture;
