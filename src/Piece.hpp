@@ -21,7 +21,7 @@ public:
     UNKNOWN
   };
 
-  enum class Team { WHITE, BLACK, UNKNOWN };
+  enum class Team  : uint8_t{ WHITE, BLACK, UNKNOWN };
 
   enum class SpecialMoveType : uint8_t{
     ENPASSANT,CASTLE,PROMOTION
